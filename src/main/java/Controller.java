@@ -3,6 +3,8 @@ import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 
+import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -12,11 +14,13 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.image.ImageView;
 
+import java.io.File;
+
 public class Controller {
 	
 	@FXML
 	private ImageView imageView; // the image display window in the GUI
-	
+
 	private Mat image;
 	
 	private int width;
@@ -27,6 +31,7 @@ public class Controller {
 	private double[] freq; // frequencies for each particular row
 	private int numberOfQuantizionLevels;
 	private int numberOfSamplesPerColumn;
+	private Stage stage;
 	
 	@FXML
 	private void initialize() {
@@ -52,11 +57,17 @@ public class Controller {
 			freq[m] = freq[m+1] * Math.pow(2, -1.0/12.0); 
 		}
 	}
+
+	public void setStage(Stage stage){
+		this.stage = stage;
+	}
 	
 	private String getImageFilename() {
 		// This method should return the filename of the image to be played
 		// You should insert your code here to allow user to select the file
-		return "resources/test.png";
+		FileChooser fileChooser = new FileChooser();
+		File f = fileChooser.showOpenDialog(stage);
+		return f.getAbsolutePath();
 	}
 	
 	@FXML
@@ -65,6 +76,8 @@ public class Controller {
 		// You should modify the logic so that it opens and displays a video
 		final String imageFilename = getImageFilename();
 		image = Imgcodecs.imread(imageFilename);
+
+		System.out.println(image);
 		imageView.setImage(Utilities.mat2Image(image)); 
 		// You don't have to understand how mat2Image() works. 
 		// In short, it converts the image from the Mat format to the Image format
