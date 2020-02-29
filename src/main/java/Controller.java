@@ -1,10 +1,13 @@
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
+import javax.sound.sampled.*;
 
+import javafx.application.Platform;
+import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.image.Image;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.Java2DFrameConverter;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -15,14 +18,19 @@ import javafx.fxml.FXML;
 import javafx.scene.image.ImageView;
 
 import java.io.File;
+import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Controller {
-	
+
 	@FXML
 	private ImageView imageView; // the image display window in the GUI
 
 	private Mat image;
-	
+
 	private int width;
 	private int height;
 	private int sampleRate; // sampling frequency
@@ -32,7 +40,10 @@ public class Controller {
 	private int numberOfQuantizionLevels;
 	private int numberOfSamplesPerColumn;
 	private Stage stage;
-	
+
+
+	private static volatile Thread playThread;
+
 	@FXML
 	private void initialize() {
 		// Optional: You should modify the logic so that the user can change these values
@@ -42,49 +53,111 @@ public class Controller {
 		sampleRate = 8000;
 		sampleSizeInBits = 8;
 		numberOfChannels = 1;
-		
+
 		numberOfQuantizionLevels = 16;
-		
+
 		numberOfSamplesPerColumn = 500;
-		
+
 		// assign frequencies for each particular row
 		freq = new double[height]; // Be sure you understand why it is height rather than width
 		freq[height/2-1] = 440.0; // 440KHz - Sound of A (La)
 		for (int m = height/2; m < height; m++) {
-			freq[m] = freq[m-1] * Math.pow(2, 1.0/12.0); 
+			freq[m] = freq[m-1] * Math.pow(2, 1.0/12.0);
 		}
 		for (int m = height/2-2; m >=0; m--) {
-			freq[m] = freq[m+1] * Math.pow(2, -1.0/12.0); 
+			freq[m] = freq[m+1] * Math.pow(2, -1.0/12.0);
 		}
 	}
 
+	//needed to use a file chooser
 	public void setStage(Stage stage){
 		this.stage = stage;
 	}
-	
+
 	private String getImageFilename() {
 		// This method should return the filename of the image to be played
 		// You should insert your code here to allow user to select the file
+		// UPDATE: Using filechooser instead
 		FileChooser fileChooser = new FileChooser();
 		File f = fileChooser.showOpenDialog(stage);
 		return f.getAbsolutePath();
 	}
-	
+
 	@FXML
 	protected void openImage(ActionEvent event) throws InterruptedException {
-		// This method opens an image and display it using the GUI
-		// You should modify the logic so that it opens and displays a video
-		final String imageFilename = getImageFilename();
-		image = Imgcodecs.imread(imageFilename);
 
-		System.out.println(image);
-		imageView.setImage(Utilities.mat2Image(image)); 
-		// You don't have to understand how mat2Image() works. 
-		// In short, it converts the image from the Mat format to the Image format
-		// The Mat format is used by the opencv library, and the Image format is used by JavaFX
-		// BTW, you should be able to explain briefly what opencv and JavaFX are after finishing this assignment
+		//get filename
+		final String videoFilename = getImageFilename();
+		//play video (and audio) in seperate thread
+		playThread = new Thread(() -> {
+			try {
+				//get the video in a frame grabber
+				final FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videoFilename);
+				grabber.start();
+
+				// this is for playing the audio
+				final AudioFormat audioFormat = new AudioFormat(grabber.getSampleRate(), 16, grabber.getAudioChannels(), true, true);
+				final DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
+				final SourceDataLine soundLine = (SourceDataLine) AudioSystem.getLine(info);
+				soundLine.open(audioFormat);
+				soundLine.start();
+
+				final Java2DFrameConverter converter = new Java2DFrameConverter(); // converts frames to swingutil images
+
+				ExecutorService executor = Executors.newSingleThreadExecutor();
+
+				//this means it will quit if another thread tells it to stop (like the main platform thread)
+				while (!Thread.interrupted()) {
+					// notably other function uses Mat not Frame, so we will need to learn how to use frame
+					// but should be basically the same
+					Frame frame = grabber.grab(); //THIS IS Basically all we need
+					if (frame == null) {
+						break;
+					}
+					if (frame.image != null) {
+						final Image image = SwingFXUtils.toFXImage(converter.convert(frame), null);
+						Platform.runLater(() -> imageView.setImage(image)); //displays the image
+					} else if (frame.samples != null) {
+						// this whole else if clause is only for the sound!
+						// so we can delete it for our purposes
+						final ShortBuffer channelSamplesShortBuffer = (ShortBuffer) frame.samples[0];
+						channelSamplesShortBuffer.rewind();
+
+						final ByteBuffer outBuffer = ByteBuffer.allocate(channelSamplesShortBuffer.capacity() * 2);
+
+						for (int i = 0; i < channelSamplesShortBuffer.capacity(); i++) {
+							short val = channelSamplesShortBuffer.get(i);
+							outBuffer.putShort(val);
+						}
+
+						/**
+						 * We need this because soundLine.write ignores
+						 * interruptions during writing.
+						 */
+						try {
+							executor.submit(() -> {
+								soundLine.write(outBuffer.array(), 0, outBuffer.capacity());
+								outBuffer.clear();
+							}).get();
+						} catch (InterruptedException interruptedException) {
+							Thread.currentThread().interrupt();
+						}
+					}
+				}
+				executor.shutdownNow();
+				executor.awaitTermination(10, TimeUnit.SECONDS);
+				soundLine.stop();
+				grabber.stop();
+				grabber.release(); // I think this is what it prints at the bottom
+				Platform.exit(); // This is why it exits when its over
+			} catch (Exception exception) {
+				System.out.println("Problem");
+			}
+		});
+		playThread.start();
 	}
 
+	//todo
 	@FXML
 	protected void playImage(ActionEvent event) throws LineUnavailableException {
 		// This method "plays" the image opened by the user
@@ -93,44 +166,48 @@ public class Controller {
 			// convert the image from RGB to grayscale
 			Mat grayImage = new Mat();
 			Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
-			
+
 			// resize the image
 			Mat resizedImage = new Mat();
 			Imgproc.resize(grayImage, resizedImage, new Size(width, height));
-			
+
 			// quantization
+			//4 bit colour, or 16 level colour between 0 and 1
 			double[][] roundedImage = new double[resizedImage.rows()][resizedImage.cols()];
 			for (int row = 0; row < resizedImage.rows(); row++) {
 				for (int col = 0; col < resizedImage.cols(); col++) {
-					roundedImage[row][col] = (double)Math.floor(resizedImage.get(row, col)[0]/numberOfQuantizionLevels) / numberOfQuantizionLevels;
+					//0 because it's grey scale
+					roundedImage[row][col] = Math.floor(resizedImage.get(row, col)[0]/numberOfQuantizionLevels) / numberOfQuantizionLevels;
 				}
 			}
-			
+
 			// I used an AudioFormat object and a SourceDataLine object to perform audio output. Feel free to try other options
-	        AudioFormat audioFormat = new AudioFormat(sampleRate, sampleSizeInBits, numberOfChannels, true, true);
-            SourceDataLine sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
-            sourceDataLine.open(audioFormat, sampleRate);
-            sourceDataLine.start();
-            
-            for (int col = 0; col < width; col++) {
-            	byte[] audioBuffer = new byte[numberOfSamplesPerColumn];
-            	for (int t = 1; t <= numberOfSamplesPerColumn; t++) {
-            		double signal = 0;
-                	for (int row = 0; row < height; row++) {
-                		int m = height - row - 1; // Be sure you understand why it is height rather width, and why we subtract 1 
-                		int time = t + col * numberOfSamplesPerColumn;
-                		double ss = Math.sin(2 * Math.PI * freq[m] * (double)time/sampleRate);
-                		signal += roundedImage[row][col] * ss;
-                	}
-                	double normalizedSignal = signal / height; // signal: [-height, height];  normalizedSignal: [-1, 1]
-                	audioBuffer[t-1] = (byte) (normalizedSignal*0x7F); // Be sure you understand what the weird number 0x7F is for
-            	}
-            	sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
-            }
-            sourceDataLine.drain();
-            sourceDataLine.close();
+			AudioFormat audioFormat = new AudioFormat(sampleRate, sampleSizeInBits, numberOfChannels, true, true);
+			SourceDataLine sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
+			sourceDataLine.open(audioFormat, sampleRate);
+			sourceDataLine.start();
+
+			for (int col = 0; col < width; col++) {
+				byte[] audioBuffer = new byte[numberOfSamplesPerColumn];
+				for (int t = 1; t <= numberOfSamplesPerColumn; t++) {
+					double signal = 0;
+					for (int row = 0; row < height; row++) {
+						int m = height - row - 1; // Be sure you understand why it is height rather width, and why we subtract 1
+						int time = t + col * numberOfSamplesPerColumn;
+						double ss = Math.sin(2 * Math.PI * freq[m] * (double)time/sampleRate);
+						signal += roundedImage[row][col] * ss;
+					}
+					double normalizedSignal = signal / height; // signal: [-height, height];  normalizedSignal: [-1, 1]
+					audioBuffer[t-1] = (byte) (normalizedSignal*0x7F); // Be sure you understand what the weird number 0x7F is for
+				}
+				//writes the whole audio buffer
+				sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
+			}
+			sourceDataLine.drain();
+			sourceDataLine.close();
 		} else {
 			// What should you do here?
+			//todo: complain about not getting an image
 		}
-	} 
+	}
 }

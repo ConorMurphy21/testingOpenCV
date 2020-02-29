@@ -18,13 +18,16 @@ public class Main extends Application {
 			primaryStage.setScene(scene);
 			primaryStage.setTitle("Blind Helper");
 			primaryStage.show();
+
+
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
 	}
 	
 	public static void main(String[] args) {
-		nu.pattern.OpenCV.loadShared();
+		//Don't need, but leaving so I don't break your code maheep
+		//nu.pattern.OpenCV.loadShared();
 		launch(args);
 	}
 }
