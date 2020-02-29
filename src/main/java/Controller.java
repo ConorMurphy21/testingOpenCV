@@ -44,6 +44,7 @@ public class Controller {
 	private int numberOfQuantizionLevels;
 	private int numberOfSamplesPerColumn;
 	private Stage stage;
+	private String videoFilename;
 	private static volatile Thread playThread;
 	
 	@FXML
@@ -83,10 +84,67 @@ public class Controller {
 		return f.getAbsolutePath();
 	}
 
-	//@FXML
-	protected void openImage2(ActionEvent event) throws InterruptedException {
+	@FXML
+	protected void openImage(ActionEvent event) throws InterruptedException {
+	    //todo: display the first frame of the image here
+		videoFilename = getImageFilename();
+	}
 
-		final String videoFilename= getImageFilename();
+
+	private void playImage(Frame frame) throws LineUnavailableException {
+		//todo: replace image with frame
+
+		// This method "plays" the image opened by the user
+		// You should modify the logic so that it plays a video rather than an image
+		if (image != null) {
+			// convert the image from RGB to grayscale
+			Mat grayImage = new Mat();
+			Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
+
+			// resize the image
+			Mat resizedImage = new Mat();
+			Imgproc.resize(grayImage, resizedImage, new Size(width, height));
+
+			// quantization
+			double[][] roundedImage = new double[resizedImage.rows()][resizedImage.cols()];
+			for (int row = 0; row < resizedImage.rows(); row++) {
+				for (int col = 0; col < resizedImage.cols(); col++) {
+					roundedImage[row][col] = (double)Math.floor(resizedImage.get(row, col)[0]/numberOfQuantizionLevels) / numberOfQuantizionLevels;
+				}
+			}
+
+			// I used an AudioFormat object and a SourceDataLine object to perform audio output. Feel free to try other options
+			AudioFormat audioFormat = new AudioFormat(sampleRate, sampleSizeInBits, numberOfChannels, true, true);
+			SourceDataLine sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
+			sourceDataLine.open(audioFormat, sampleRate);
+			sourceDataLine.start();
+
+			for (int col = 0; col < width; col++) {
+				byte[] audioBuffer = new byte[numberOfSamplesPerColumn];
+				for (int t = 1; t <= numberOfSamplesPerColumn; t++) {
+					double signal = 0;
+					for (int row = 0; row < height; row++) {
+						int m = height - row - 1; // Be sure you understand why it is height rather width, and why we subtract 1
+						int time = t + col * numberOfSamplesPerColumn;
+						double ss = Math.sin(2 * Math.PI * freq[m] * (double)time/sampleRate);
+						signal += roundedImage[row][col] * ss;
+					}
+					double normalizedSignal = signal / height; // signal: [-height, height];  normalizedSignal: [-1, 1]
+					audioBuffer[t-1] = (byte) (normalizedSignal*0x7F); // Be sure you understand what the weird number 0x7F is for
+				}
+				sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
+			}
+			sourceDataLine.drain();
+			sourceDataLine.close();
+		} else {
+			// What should you do here?
+		}
+	}
+
+	@FXML
+	protected void playImage(ActionEvent event) throws LineUnavailableException {
+
+		//todo: video continues to play after I press exit. Fix this
 		playThread = new Thread(() -> {
 			try {
 				//what we need to get video
@@ -109,12 +167,13 @@ public class Controller {
 				while (!Thread.interrupted()) {
 					// this is what we need, frame is not technically Mat but it should be similar enough
 					// that we can alter the original code just slightly
+					//todo: run at slower fps
 					Frame frame = grabber.grab();
 					if (frame == null) {
 						break;
 					}
 					if (frame.image != null) {
-											//converts frame to swing image, then to javafx image
+						//converts frame to swing image, then to javafx image
 						final Image image = SwingFXUtils.toFXImage(converter.convert(frame), null);
 						Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
 					} else if (frame.samples != null) {
@@ -155,102 +214,5 @@ public class Controller {
 			}
 		});
 		playThread.start(); // start the thread we just made
-	}
-
-	@FXML
-	protected void openImage(ActionEvent event) throws InterruptedException {
-		// This method opens an image and display it using the GUI
-		// You should modify the logic so that it opens and displays a video
-
-
-
-		final String imageFilename = getImageFilename();
-
-		 String go_to = "cd " + imageFilename;
-		System.out.println(imageFilename);
-		 String Distr = "ffmpeg -i "+ imageFilename +" -r 1 -f image2 image-%2d.png";
-
-		try{
-			Process process = Runtime.getRuntime().exec(Distr);
-			// Get input streams
-			BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-			BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-			// Read command standard output
-			String s;
-			System.out.println("Standard output: ");
-			while ((s = stdInput.readLine()) != null) {
-				System.out.println(s);
-			}
-
-			// Read command errors
-			System.out.println("Standard error: ");
-			while ((s = stdError.readLine()) != null) {
-				System.out.println(s);
-			}
-		}catch (Exception e){
-			e.printStackTrace(System.err);
-		}
-
-		image = Imgcodecs.imread("image-01.png");
-
-		System.out.println(image);
-
-		imageView.setImage(Utilities.mat2Image(image));
-		// You don't have to understand how mat2Image() works. 
-		// In short, it converts the image from the Mat format to the Image format
-		// The Mat format is used by the opencv library, and the Image format is used by JavaFX
-		// BTW, you should be able to explain briefly what opencv and JavaFX are after finishing this assignment
-
-
-	}
-
-	@FXML
-	protected void playImage(ActionEvent event) throws LineUnavailableException {
-		// This method "plays" the image opened by the user
-		// You should modify the logic so that it plays a video rather than an image
-		if (image != null) {
-			// convert the image from RGB to grayscale
-			Mat grayImage = new Mat();
-			Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
-			
-			// resize the image
-			Mat resizedImage = new Mat();
-			Imgproc.resize(grayImage, resizedImage, new Size(width, height));
-			
-			// quantization
-			double[][] roundedImage = new double[resizedImage.rows()][resizedImage.cols()];
-			for (int row = 0; row < resizedImage.rows(); row++) {
-				for (int col = 0; col < resizedImage.cols(); col++) {
-					roundedImage[row][col] = (double)Math.floor(resizedImage.get(row, col)[0]/numberOfQuantizionLevels) / numberOfQuantizionLevels;
-				}
-			}
-			
-			// I used an AudioFormat object and a SourceDataLine object to perform audio output. Feel free to try other options
-	        AudioFormat audioFormat = new AudioFormat(sampleRate, sampleSizeInBits, numberOfChannels, true, true);
-            SourceDataLine sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
-            sourceDataLine.open(audioFormat, sampleRate);
-            sourceDataLine.start();
-            
-            for (int col = 0; col < width; col++) {
-            	byte[] audioBuffer = new byte[numberOfSamplesPerColumn];
-            	for (int t = 1; t <= numberOfSamplesPerColumn; t++) {
-            		double signal = 0;
-                	for (int row = 0; row < height; row++) {
-                		int m = height - row - 1; // Be sure you understand why it is height rather width, and why we subtract 1 
-                		int time = t + col * numberOfSamplesPerColumn;
-                		double ss = Math.sin(2 * Math.PI * freq[m] * (double)time/sampleRate);
-                		signal += roundedImage[row][col] * ss;
-                	}
-                	double normalizedSignal = signal / height; // signal: [-height, height];  normalizedSignal: [-1, 1]
-                	audioBuffer[t-1] = (byte) (normalizedSignal*0x7F); // Be sure you understand what the weird number 0x7F is for
-            	}
-            	sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
-            }
-            sourceDataLine.drain();
-            sourceDataLine.close();
-		} else {
-			// What should you do here?
-		}
 	} 
 }
