@@ -1,11 +1,14 @@
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.LineUnavailableException;
-import javax.sound.sampled.SourceDataLine;
+import javax.sound.sampled.*;
 import javax.swing.*;
 
+import javafx.application.Platform;
+import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.image.Image;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Frame;
+import org.bytedeco.javacv.Java2DFrameConverter;
 import org.opencv.core.Mat;
 import org.opencv.core.Size;
 import org.opencv.imgcodecs.Imgcodecs;
@@ -19,6 +22,11 @@ import org.opencv.videoio.VideoCapture;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Controller {
 	
@@ -36,6 +44,7 @@ public class Controller {
 	private int numberOfQuantizionLevels;
 	private int numberOfSamplesPerColumn;
 	private Stage stage;
+	private static volatile Thread playThread;
 	
 	@FXML
 	private void initialize() {
@@ -73,7 +82,81 @@ public class Controller {
 		File f = fileChooser.showOpenDialog(stage);
 		return f.getAbsolutePath();
 	}
-	
+
+	//@FXML
+	protected void openImage2(ActionEvent event) throws InterruptedException {
+
+		final String videoFilename= getImageFilename();
+		playThread = new Thread(() -> {
+			try {
+				//what we need to get video
+				final FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videoFilename);
+				grabber.start();
+
+				//the stuff for playing audio
+				final AudioFormat audioFormat = new AudioFormat(grabber.getSampleRate(), 16, grabber.getAudioChannels(), true, true);
+				final DataLine.Info info = new DataLine.Info(SourceDataLine.class, audioFormat);
+				final SourceDataLine soundLine = (SourceDataLine) AudioSystem.getLine(info);
+				soundLine.open(audioFormat);
+				soundLine.start();
+
+				final Java2DFrameConverter converter = new Java2DFrameConverter(); //converts frames to java.awt.image
+
+				// executes audio I believe
+				ExecutorService executor = Executors.newSingleThreadExecutor();
+
+				// This is so the main thread can interrupt this one
+				while (!Thread.interrupted()) {
+					// this is what we need, frame is not technically Mat but it should be similar enough
+					// that we can alter the original code just slightly
+					Frame frame = grabber.grab();
+					if (frame == null) {
+						break;
+					}
+					if (frame.image != null) {
+											//converts frame to swing image, then to javafx image
+						final Image image = SwingFXUtils.toFXImage(converter.convert(frame), null);
+						Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
+					} else if (frame.samples != null) {
+						// EVERYTHING IN THIS ELSE IF CLAUSE IS JUST FOR THE SOUND
+						// we don't need to worry about it just left it in for later
+						final ShortBuffer channelSamplesShortBuffer = (ShortBuffer) frame.samples[0];
+						channelSamplesShortBuffer.rewind();
+
+						final ByteBuffer outBuffer = ByteBuffer.allocate(channelSamplesShortBuffer.capacity() * 2);
+
+						for (int i = 0; i < channelSamplesShortBuffer.capacity(); i++) {
+							short val = channelSamplesShortBuffer.get(i);
+							outBuffer.putShort(val);
+						}
+
+						/**
+						 * We need this because soundLine.write ignores
+						 * interruptions during writing.
+						 */
+						try {
+							executor.submit(() -> {
+								soundLine.write(outBuffer.array(), 0, outBuffer.capacity());
+								outBuffer.clear();
+							}).get();
+						} catch (InterruptedException interruptedException) {
+							Thread.currentThread().interrupt();
+						}
+					}
+				}
+				executor.shutdownNow();
+				executor.awaitTermination(10, TimeUnit.SECONDS);
+				soundLine.stop(); // duh
+				grabber.stop(); // duh
+				grabber.release(); // This is the stuff it prints
+				Platform.exit(); // This is why it closes when it's done
+			} catch (Exception exception) {
+				System.out.println("Something went wrong");
+			}
+		});
+		playThread.start(); // start the thread we just made
+	}
+
 	@FXML
 	protected void openImage(ActionEvent event) throws InterruptedException {
 		// This method opens an image and display it using the GUI
