@@ -2,6 +2,7 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
+import javax.swing.*;
 
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -13,8 +14,11 @@ import org.opencv.imgproc.Imgproc;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.image.ImageView;
+import org.opencv.videoio.VideoCapture;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.InputStreamReader;
 
 public class Controller {
 	
@@ -74,15 +78,48 @@ public class Controller {
 	protected void openImage(ActionEvent event) throws InterruptedException {
 		// This method opens an image and display it using the GUI
 		// You should modify the logic so that it opens and displays a video
+
+
+
 		final String imageFilename = getImageFilename();
-		image = Imgcodecs.imread(imageFilename);
+
+		 String go_to = "cd " + imageFilename;
+		System.out.println(imageFilename);
+		 String Distr = "ffmpeg -i "+ imageFilename +" -r 1 -f image2 image-%2d.png";
+
+		try{
+			Process process = Runtime.getRuntime().exec(Distr);
+			// Get input streams
+			BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+			BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+			// Read command standard output
+			String s;
+			System.out.println("Standard output: ");
+			while ((s = stdInput.readLine()) != null) {
+				System.out.println(s);
+			}
+
+			// Read command errors
+			System.out.println("Standard error: ");
+			while ((s = stdError.readLine()) != null) {
+				System.out.println(s);
+			}
+		}catch (Exception e){
+			e.printStackTrace(System.err);
+		}
+
+		image = Imgcodecs.imread("image-01.png");
 
 		System.out.println(image);
-		imageView.setImage(Utilities.mat2Image(image)); 
+
+		imageView.setImage(Utilities.mat2Image(image));
 		// You don't have to understand how mat2Image() works. 
 		// In short, it converts the image from the Mat format to the Image format
 		// The Mat format is used by the opencv library, and the Image format is used by JavaFX
 		// BTW, you should be able to explain briefly what opencv and JavaFX are after finishing this assignment
+
+
 	}
 
 	@FXML
