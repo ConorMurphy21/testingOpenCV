@@ -89,6 +89,7 @@ public class Controller {
 	protected void openImage(ActionEvent event) throws InterruptedException {
 	    //todo: display the first frame of the image here
 		videoFilename = getImageFilename();
+
 	}
 
 
@@ -147,6 +148,7 @@ public class Controller {
 	@FXML
 	protected void playImage(ActionEvent event) throws LineUnavailableException {
 
+	    //todo: the click sound is not playing unless the file is in the same folder as the controller, fix
 		//todo: video continues to play after I press exit. Fix this
 		playThread = new Thread(() -> {
 			try {
@@ -187,6 +189,7 @@ public class Controller {
 
 
 					}
+					play_click_sound();
 
 						// EVERYTHING IN THIS ELSE IF CLAUSE IS JUST FOR THE SOUND
 						// we don't need to worry about it just left it in for later
@@ -225,5 +228,24 @@ public class Controller {
 			}
 		});
 		playThread.start(); // start the thread we just made
-	} 
+	}
+
+	public void play_click_sound(){
+		new Thread(new Runnable() {
+
+			String path = "/../resources/click_sound.wav";
+			public void run() {
+				try {
+					Clip clip = AudioSystem.getClip();
+					AudioInputStream inputStream = AudioSystem.getAudioInputStream(
+							Main.class.getResourceAsStream(path));
+					clip.open(inputStream);
+					clip.start();
+				} catch (Exception e) {
+				    e.printStackTrace();
+				}
+			}
+		}).start();
+	}
+
 }
