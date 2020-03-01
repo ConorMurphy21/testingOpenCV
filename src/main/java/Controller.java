@@ -6,22 +6,24 @@ import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.bytedeco.javacpp.indexer.UByteBufferIndexer;
+import org.bytedeco.javacpp.indexer.UByteRawIndexer;
 import org.bytedeco.javacv.FFmpegFrameGrabber;
 import org.bytedeco.javacv.Frame;
 import org.bytedeco.javacv.Java2DFrameConverter;
-import org.opencv.core.Mat;
-import org.opencv.core.Size;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
+import org.bytedeco.javacv.OpenCVFrameConverter;
 
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.image.ImageView;
-import org.opencv.videoio.VideoCapture;
+import org.bytedeco.opencv.opencv_core.Mat;
+import org.bytedeco.opencv.opencv_core.Size;
+import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.InputStreamReader;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ShortBuffer;
 import java.util.concurrent.ExecutorService;
@@ -33,8 +35,7 @@ public class Controller {
 	@FXML
 	private ImageView imageView; // the image display window in the GUI
 
-	private Mat image;
-	
+
 	private int width;
 	private int height;
 	private int sampleRate; // sampling frequency
@@ -91,7 +92,7 @@ public class Controller {
 	}
 
 
-	private void playImage(Frame frame) throws LineUnavailableException {
+	private void playImage(Mat image) throws LineUnavailableException {
 		//todo: replace image with frame
 
 		// This method "plays" the image opened by the user
@@ -99,17 +100,19 @@ public class Controller {
 		if (image != null) {
 			// convert the image from RGB to grayscale
 			Mat grayImage = new Mat();
-			Imgproc.cvtColor(image, grayImage, Imgproc.COLOR_BGR2GRAY);
+			cvtColor(image, grayImage, COLOR_BGR2GRAY);
 
 			// resize the image
 			Mat resizedImage = new Mat();
-			Imgproc.resize(grayImage, resizedImage, new Size(width, height));
+			resize(grayImage,resizedImage,new Size(width,height));
+
+			UByteRawIndexer imageIndexer = image.createIndexer();
 
 			// quantization
 			double[][] roundedImage = new double[resizedImage.rows()][resizedImage.cols()];
 			for (int row = 0; row < resizedImage.rows(); row++) {
 				for (int col = 0; col < resizedImage.cols(); col++) {
-					roundedImage[row][col] = (double)Math.floor(resizedImage.get(row, col)[0]/numberOfQuantizionLevels) / numberOfQuantizionLevels;
+					roundedImage[row][col] = ((double)imageIndexer.get(row,col)/numberOfQuantizionLevels) / numberOfQuantizionLevels;
 				}
 			}
 
@@ -158,7 +161,8 @@ public class Controller {
 				soundLine.open(audioFormat);
 				soundLine.start();
 
-				final Java2DFrameConverter converter = new Java2DFrameConverter(); //converts frames to java.awt.image
+				final Java2DFrameConverter fxconverter = new Java2DFrameConverter(); //converts frames to java.awt.image
+				final OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
 
 				// executes audio I believe
 				ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -168,18 +172,25 @@ public class Controller {
 					// this is what we need, frame is not technically Mat but it should be similar enough
 					// that we can alter the original code just slightly
 					//todo: run at slower fps
-					Frame frame = grabber.grab();
+					Frame frame = grabber.grabImage();
+
 					if (frame == null) {
 						break;
 					}
 					if (frame.image != null) {
 						//converts frame to swing image, then to javafx image
-						final Image image = SwingFXUtils.toFXImage(converter.convert(frame), null);
+						final Image image = SwingFXUtils.toFXImage(fxconverter.convert(frame), null);
 						Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
-					} else if (frame.samples != null) {
+
+						Mat mat = converter.convert(frame);
+						playImage(mat);
+
+
+					}
+
 						// EVERYTHING IN THIS ELSE IF CLAUSE IS JUST FOR THE SOUND
 						// we don't need to worry about it just left it in for later
-						final ShortBuffer channelSamplesShortBuffer = (ShortBuffer) frame.samples[0];
+						/*final ShortBuffer channelSamplesShortBuffer = (ShortBuffer) frame.samples[0];
 						channelSamplesShortBuffer.rewind();
 
 						final ByteBuffer outBuffer = ByteBuffer.allocate(channelSamplesShortBuffer.capacity() * 2);
@@ -193,23 +204,23 @@ public class Controller {
 						 * We need this because soundLine.write ignores
 						 * interruptions during writing.
 						 */
-						try {
+						/*try {
 							executor.submit(() -> {
 								soundLine.write(outBuffer.array(), 0, outBuffer.capacity());
 								outBuffer.clear();
 							}).get();
 						} catch (InterruptedException interruptedException) {
 							Thread.currentThread().interrupt();
-						}
-					}
+						}*/
 				}
 				executor.shutdownNow();
 				executor.awaitTermination(10, TimeUnit.SECONDS);
 				soundLine.stop(); // duh
 				grabber.stop(); // duh
-				grabber.release(); // This is the stuff it prints
+				//grabber.release(); // This is the stuff it prints
 				Platform.exit(); // This is why it closes when it's done
 			} catch (Exception exception) {
+				exception.printStackTrace();
 				System.out.println("Something went wrong");
 			}
 		});
