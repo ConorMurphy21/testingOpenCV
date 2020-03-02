@@ -169,13 +169,12 @@ public class Controller {
 				// executes audio I believe
 				ExecutorService executor = Executors.newSingleThreadExecutor();
 
+				int counter = 0;
 				// This is so the main thread can interrupt this one
 				while (!Thread.interrupted()) {
-					// this is what we need, frame is not technically Mat but it should be similar enough
-					// that we can alter the original code just slightly
-					//todo: run at slower fps
+				    //tried using grabKeyFrame, but there was only 1 keyFrame.
 					Frame frame = grabber.grabImage();
-
+					counter++;
 					if (frame == null) {
 						break;
 					}
@@ -185,11 +184,11 @@ public class Controller {
 						Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
 
 						Mat mat = converter.convert(frame);
-						playImage(mat);
-
-
+						if(counter % 30 == 0){
+							playImage(mat);
+							play_click_sound();
+						}
 					}
-					play_click_sound();
 
 						// EVERYTHING IN THIS ELSE IF CLAUSE IS JUST FOR THE SOUND
 						// we don't need to worry about it just left it in for later
@@ -233,7 +232,7 @@ public class Controller {
 	public void play_click_sound(){
 		new Thread(new Runnable() {
 
-			String path = "/../resources/click_sound.wav";
+			String path = "click_sound.wav";
 			public void run() {
 				try {
 					Clip clip = AudioSystem.getClip();
