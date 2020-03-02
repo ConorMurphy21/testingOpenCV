@@ -98,7 +98,8 @@ public class Controller {
 				Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
 				}
 		}catch (Exception e){
-
+			play_error_sound();
+			System.out.println("Could not display thumbnail.");
 		}
 
 
@@ -202,11 +203,13 @@ public class Controller {
 				System.out.println("Something went wrong");
 				//this most commonly occurs when the video is already in use
 				//todo: add an error message and noise for this too
+				play_error_sound();
 			} catch (FrameGrabber.Exception exception) {
 				//I assume this is what occurs when the path is invalid
 				exception.printStackTrace();
 				System.out.println("Something else went wrong");
 				//todo: add an error sound for this, because this means they didn't input a valid video
+				play_error_sound();
 			}
 		});
 		playThread.start(); // start the thread we just made
@@ -217,6 +220,24 @@ public class Controller {
 		new Thread(new Runnable() {
 
 			String path = "click_sound.wav";
+			public void run() {
+				try {
+					Clip clip = AudioSystem.getClip();
+					AudioInputStream inputStream = AudioSystem.getAudioInputStream(
+							Main.class.getResourceAsStream(path));
+					clip.open(inputStream);
+					clip.start();
+				} catch (Exception e) {
+					e.printStackTrace();
+				}
+			}
+		}).start();
+	}
+
+	public void play_error_sound(){
+		new Thread(new Runnable() {
+
+			String path = "error.wav";
 			public void run() {
 				try {
 					Clip clip = AudioSystem.getClip();
