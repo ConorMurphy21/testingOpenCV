@@ -89,6 +89,11 @@ public class Controller {
 
 		videoFilename = getImageFilename();
 
+		if(videoFilename == null){
+			System.out.println("No file selected");
+			return;
+		}
+
 		try{
 			thumbnail = new FFmpegFrameGrabber(videoFilename);
 			thumbnail.start();
@@ -157,8 +162,10 @@ public class Controller {
 	@FXML
 	protected void playImage(ActionEvent event) {
 
+
 		if(videoFilename == null){
-			//todo: play error noise, display error
+			System.out.println("File not found.");
+			play_error_sound();
 			return;
 		}
 
@@ -202,13 +209,12 @@ public class Controller {
 				exception.printStackTrace();
 				System.out.println("Something went wrong");
 				//this most commonly occurs when the video is already in use
-				//todo: add an error message and noise for this too
+				System.out.println("Please wait for this video to end.");
 				play_error_sound();
 			} catch (FrameGrabber.Exception exception) {
 				//I assume this is what occurs when the path is invalid
 				exception.printStackTrace();
 				System.out.println("Something else went wrong");
-				//todo: add an error sound for this, because this means they didn't input a valid video
 				play_error_sound();
 			}
 		});
