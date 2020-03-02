@@ -2,4 +2,5 @@
 .idea
 build
 gradle
+ffmpeg-20200227-9b22254-win64-static
 out
