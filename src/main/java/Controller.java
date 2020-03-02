@@ -1,6 +1,7 @@
 import javax.sound.sampled.*;
 import javax.swing.*;
 
+
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
@@ -228,12 +229,14 @@ public class Controller {
 			}
 		});
 		playThread.start(); // start the thread we just made
+		Thread.currentThread().interrupt();
+		return;
 	}
 
 	public void play_click_sound(){
 		new Thread(new Runnable() {
 
-			String path = "/../resources/click_sound.wav";
+			String path = "click_sound.wav";
 			public void run() {
 				try {
 					Clip clip = AudioSystem.getClip();

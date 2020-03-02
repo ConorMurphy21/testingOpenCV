@@ -19,7 +19,6 @@ public class Main extends Application {
 			primaryStage.setTitle("Blind Helper");
 			primaryStage.show();
 
-
 		} catch(Exception e) {
 			e.printStackTrace();
 		}
