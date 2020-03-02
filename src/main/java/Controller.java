@@ -43,7 +43,7 @@ public class Controller {
 	private int numberOfSamplesPerColumn;
 	private Stage stage;
 	private String videoFilename;
-
+	private FFmpegFrameGrabber thumbnail;
 	private static final Java2DFrameConverter fxconverter = new Java2DFrameConverter(); //converts frames to java.awt.image
 	private static final OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
 
@@ -86,11 +86,11 @@ public class Controller {
 
 	@FXML
 	protected void openImage(ActionEvent event) throws InterruptedException {
-		//todo: display the first frame of the image here
+
 		videoFilename = getImageFilename();
 
 		try{
-			final FFmpegFrameGrabber thumbnail = new FFmpegFrameGrabber(videoFilename);
+			thumbnail = new FFmpegFrameGrabber(videoFilename);
 			thumbnail.start();
 			Frame tn = thumbnail.grabImage();
 			if (tn.image != null) {
@@ -168,6 +168,8 @@ public class Controller {
 		Thread playThread = new Thread(() -> {
 			try {
 				//what we need to get video
+				thumbnail.stop();
+				thumbnail.release();
 				final FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videoFilename);
 				grabber.start();
 
@@ -194,7 +196,7 @@ public class Controller {
 				}
 				grabber.stop(); // duh
 				grabber.release(); // This is the stuff it prints
-				Platform.exit(); // This is why it closes when it's done
+				//Platform.exit(); // This is why it closes when it's done
 			} catch (LineUnavailableException exception) {
 				exception.printStackTrace();
 				System.out.println("Something went wrong");
