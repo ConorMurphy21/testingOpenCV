@@ -89,6 +89,19 @@ public class Controller {
 		//todo: display the first frame of the image here
 		videoFilename = getImageFilename();
 
+		try{
+			final FFmpegFrameGrabber thumbnail = new FFmpegFrameGrabber(videoFilename);
+			thumbnail.start();
+			Frame tn = thumbnail.grabImage();
+			if (tn.image != null) {
+				final Image image = SwingFXUtils.toFXImage(fxconverter.convert(tn), null);
+				Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
+				}
+		}catch (Exception e){
+
+		}
+
+
 	}
 
 
