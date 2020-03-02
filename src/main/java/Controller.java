@@ -1,12 +1,10 @@
 import javax.sound.sampled.*;
-import javax.swing.*;
 
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
-import org.bytedeco.javacpp.indexer.UByteBufferIndexer;
 import org.bytedeco.javacpp.indexer.UByteRawIndexer;
 import org.bytedeco.javacv.*;
 
@@ -17,15 +15,7 @@ import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Size;
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
-import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
-import java.nio.Buffer;
-import java.nio.ByteBuffer;
-import java.nio.ShortBuffer;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 public class Controller {
 
@@ -103,7 +93,7 @@ public class Controller {
 				Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
 				}
 		}catch (Exception e){
-			play_error_sound();
+			playErrorSound();
 			System.out.println("Could not display thumbnail.");
 		}
 
@@ -165,7 +155,7 @@ public class Controller {
 
 		if(videoFilename == null){
 			System.out.println("File not found.");
-			play_error_sound();
+			playErrorSound();
 			return;
 		}
 
@@ -198,7 +188,7 @@ public class Controller {
 						Mat mat = converter.convert(frame);
 						if (counter % 30 == 0) {
 							playImage(mat);
-							play_click_sound();
+							playClickSound();
 						}
 					}
 				}
@@ -210,52 +200,39 @@ public class Controller {
 				System.out.println("Something went wrong");
 				//this most commonly occurs when the video is already in use
 				System.out.println("Please wait for this video to end.");
-				play_error_sound();
+				playErrorSound();
 			} catch (FrameGrabber.Exception exception) {
 				//I assume this is what occurs when the path is invalid
 				exception.printStackTrace();
 				System.out.println("Something else went wrong");
-				play_error_sound();
+				playErrorSound();
 			}
 		});
 		playThread.start(); // start the thread we just made
 
 	}
 
-	public void play_click_sound(){
-		new Thread(new Runnable() {
-
-			String path = "click_sound.wav";
-			public void run() {
-				try {
-					Clip clip = AudioSystem.getClip();
-					AudioInputStream inputStream = AudioSystem.getAudioInputStream(
-							Main.class.getResourceAsStream(path));
-					clip.open(inputStream);
-					clip.start();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
+	public void playSound(String filename){
+		new Thread(() -> {
+			try {
+				Clip clip = AudioSystem.getClip();
+				AudioInputStream inputStream = AudioSystem.getAudioInputStream(
+						Main.class.getResourceAsStream(filename));
+				clip.open(inputStream);
+				clip.start();
+			} catch (Exception e) {
+				e.printStackTrace();
 			}
 		}).start();
 	}
 
-	public void play_error_sound(){
-		new Thread(new Runnable() {
+	public void playClickSound(){
+		playSound("click_sound.wav");
+	}
 
-			String path = "error.wav";
-			public void run() {
-				try {
-					Clip clip = AudioSystem.getClip();
-					AudioInputStream inputStream = AudioSystem.getAudioInputStream(
-							Main.class.getResourceAsStream(path));
-					clip.open(inputStream);
-					clip.start();
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-			}
-		}).start();
+	public void playErrorSound(){
+
+		playSound("error.wav");
 	}
 
 }
