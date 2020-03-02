@@ -1,8 +1,10 @@
 import javafx.application.Application;
+import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
+import javafx.stage.WindowEvent;
 
 
 public class Main extends Application {
@@ -18,6 +20,10 @@ public class Main extends Application {
 			primaryStage.setScene(scene);
 			primaryStage.setTitle("Blind Helper");
 			primaryStage.show();
+			//close all background threads immediately on closing application
+			primaryStage.setOnCloseRequest(we -> {
+				System.exit(0);
+			});
 
 
 		} catch(Exception e) {

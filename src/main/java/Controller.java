@@ -152,6 +152,7 @@ public class Controller {
 		//todo: video continues to play after I press exit. Fix this
 		playThread = new Thread(() -> {
 			try {
+			    //todo move these initialization steps to open Image, so it doesn't take as long to start playing
 				//what we need to get video
 				final FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videoFilename);
 				grabber.start();
@@ -227,6 +228,7 @@ public class Controller {
 			}
 		});
 		playThread.start(); // start the thread we just made
+
 	}
 
 	public void play_click_sound(){
