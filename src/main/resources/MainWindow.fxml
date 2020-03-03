@@ -21,11 +21,11 @@
             </HBox>
             <HBox>
                <Label text="Sample Rate: " />
-               <TextField prefWidth="70.0" fx:id="SampleRateInput"/>
+               <TextField prefWidth="70.0" fx:id="sampleRateInput"/>
                <Label text="Sample Size in Bits: " />
-               <TextField prefWidth="60.0" fx:id="SampleSizeInput"/>
+               <TextField prefWidth="60.0" fx:id="sampleSizeInput"/>
                <Label text="# Samples per Column: " />
-               <TextField prefWidth="60.0" fx:id="SamplePerColumnInput"/>
+               <TextField prefWidth="60.0" fx:id="samplePerColumnInput"/>
             </HBox>
          </children>
       </VBox>
