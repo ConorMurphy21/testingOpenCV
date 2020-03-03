@@ -1,10 +1,6 @@
 import javax.sound.sampled.*;
-import javax.swing.*;
-import javax.swing.border.Border;
 
 import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
@@ -21,7 +17,6 @@ import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Size;
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
-import java.awt.*;
 import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -32,9 +27,9 @@ public class Controller {
 
 	@FXML
 	public Text errorBox;
-	public TextField SamplePerColumnInput;
-	public TextField SampleSizeInput;
-	public TextField SampleRateInput;
+	public TextField samplePerColumnInput;
+	public TextField sampleSizeInput;
+	public TextField sampleRateInput;
 	public TextField quantInput;
 	public TextField heightInput;
 	public TextField widthInput;
@@ -66,12 +61,12 @@ public class Controller {
 
 
 
-	private void change_this(String c){
+	private void changeThis(String c){
 		switch (c){
 			case "wi": width = Integer.parseInt(widthInput.getText()); break;
-			case "spc": numberOfSamplesPerColumn = Integer.parseInt(SamplePerColumnInput.getText()); break;
-			case "ssi": sampleSizeInBits = Integer.parseInt(SampleSizeInput.getText()); break;
-			case "sri": sampleRate = Integer.parseInt(SampleRateInput.getText()); break;
+			case "spc": numberOfSamplesPerColumn = Integer.parseInt(samplePerColumnInput.getText()); break;
+			case "ssi": sampleSizeInBits = Integer.parseInt(sampleSizeInput.getText()); break;
+			case "sri": sampleRate = Integer.parseInt(sampleRateInput.getText()); break;
 			case "qi":	numberOfQuantizionLevels = Integer.parseInt(quantInput.getText());break;
 			case "hi":	height = Integer.parseInt(heightInput.getText());break;
 		}
@@ -105,61 +100,26 @@ public class Controller {
 		setListeners();
 
 	}
-	private Boolean isEmpty(String x){
-		if (x.equals("")) return true;
-		return false;
-	}
+
 	private void setListeners(){
-		SamplePerColumnInput.textProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				if (isInteger(newValue)) change_this("spc");
-				else if(!isEmpty(newValue))SamplePerColumnInput.setText(oldValue);
-			}
-		});
-		SampleSizeInput.textProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				if (isInteger(newValue)) change_this("ssi");
-				else if(!isEmpty(newValue))SampleSizeInput.setText(oldValue);
-			}
-		});
-		SampleRateInput.textProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				if (isInteger(newValue)) change_this("sri");
-				else if(!isEmpty(newValue))SampleRateInput.setText(oldValue);
-			}
-		});
-		quantInput.textProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				if (isInteger(newValue)) change_this("qi");
-				else if(!isEmpty(newValue))quantInput.setText(oldValue);
-			}
-		});
-		heightInput.textProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				if (isInteger(newValue)) change_this("hi");
-				else if(!isEmpty(newValue))heightInput.setText(oldValue);
-			}
-		});
-		widthInput.textProperty().addListener(new ChangeListener<String>() {
-			@Override
-			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
-				if (isInteger(newValue)) change_this("wi");
-				else if(!isEmpty(newValue))widthInput.setText(oldValue);
-			}
+		setIntegerListener(widthInput,"wi");
+		setIntegerListener(heightInput,"hi");
+		setIntegerListener(quantInput,"qi");
+		setIntegerListener(sampleRateInput,"sri");
+		setIntegerListener(sampleSizeInput,"ssi");
+		setIntegerListener(samplePerColumnInput,"spc");
+	}
+	private void setIntegerListener(TextField t, String change){
+		t.textProperty().addListener((obs,oldVal,newVal) -> {
+			if (isInteger(newVal)) changeThis(change);
+			else t.setText(oldVal);
 		});
 	}
 	public static boolean isInteger(String s) {
 		try {
 			int k = Integer.parseInt(s);
 			if(k < 0) return false;
-		} catch(NumberFormatException e) {
-			return false;
-		} catch(NullPointerException e) {
+		} catch(NumberFormatException | NullPointerException e) {
 			return false;
 		}
 
@@ -309,7 +269,6 @@ public class Controller {
 			errorBox.setText(e.getMessage());
 		}
 	}
-
 
 	private void playImage(Mat image, ExecutorService executor) {
 		//todo: replace image with frame
