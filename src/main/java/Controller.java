@@ -29,6 +29,7 @@ public class Controller {
 	private ImageView imageView; // the image display window in the GUI
 
 
+
 	private int width;
 	private int height;
 	private int sampleRate; // sampling frequency
@@ -85,6 +86,7 @@ public class Controller {
 						grabber.release();
 					} catch (FrameGrabber.Exception e) {
 						e.printStackTrace();
+						errorBox.setText(e.getMessage());
 					}
 				}
 			}else{
@@ -131,7 +133,7 @@ public class Controller {
 			// cannot
 		}catch (Exception e){
 			playErrorSound();
-			System.out.println(e.getMessage());
+			errorBox.setText(e.getMessage());
 		}
 
 
@@ -189,9 +191,10 @@ public class Controller {
 				sourceDataLine.stop();
 				grabber.stop(); // duh
 				grabber.release(); // This is the stuff it prints
-			} catch (FrameGrabber.Exception | InterruptedException exception) {
-				exception.printStackTrace();
-				System.out.println(exception.getMessage());
+			} catch (FrameGrabber.Exception | InterruptedException e) {
+				e.printStackTrace();
+
+				errorBox.setText(e.getMessage());
 				playErrorSound();
 			} //I assume this is what occurs when the path is invalid
 
@@ -207,6 +210,7 @@ public class Controller {
 			sourceDataLine.open(audioFormat, sampleRate);
 		} catch (LineUnavailableException e) {
 			e.printStackTrace();
+			errorBox.setText(e.getMessage());
 		}
 	}
 
@@ -267,6 +271,7 @@ public class Controller {
 			executor.submit(() -> sourceDataLine.drain()).get();
 		} catch (InterruptedException | ExecutionException interruptedException) {
 			Thread.currentThread().interrupt();
+
 		}
 	}
 
@@ -281,7 +286,8 @@ public class Controller {
 				clip.start();
 			} catch (Exception e) {
 				e.printStackTrace();
-				System.out.println(e.getMessage());
+				errorBox.setText(e.getMessage());
+
 			}
 		}).start();
 	}

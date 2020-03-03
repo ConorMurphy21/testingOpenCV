@@ -3,3 +3,6 @@
     -fx-font-size: 20px;
     -fx-fill: #ff0000;
 }
+.root{
+    -fx-background-image: url("awesome_mark.png");
+}
