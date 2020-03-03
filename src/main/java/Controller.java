@@ -111,7 +111,7 @@ public class Controller {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("spc");
-				else SamplePerColumnInput.clear();
+				else SamplePerColumnInput.setText(oldValue);
 			}
 		});
 		SampleSizeInput.textProperty().addListener(new ChangeListener<String>() {
