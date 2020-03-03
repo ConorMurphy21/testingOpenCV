@@ -8,7 +8,6 @@ import javafx.stage.Stage;
 import org.bytedeco.javacpp.indexer.UByteRawIndexer;
 import org.bytedeco.javacv.*;
 
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.image.ImageView;
 import org.bytedeco.opencv.opencv_core.Mat;
@@ -95,7 +94,7 @@ public class Controller {
 	}
 
 	@FXML
-	protected void openImage(ActionEvent event) throws InterruptedException {
+	protected void openImage() {
 
 		videoFilename = getImageFilename();
 
@@ -122,7 +121,7 @@ public class Controller {
 	}
 
 	@FXML
-	protected void playFile(ActionEvent event) {
+	protected void playFile() {
 
 		if(videoFilename == null){
 			System.out.println("File not found.");
@@ -159,16 +158,12 @@ public class Controller {
 				}
 				grabber.stop(); // duh
 				grabber.release(); // This is the stuff it prints
-			} catch (LineUnavailableException exception) {
+			} catch (LineUnavailableException | FrameGrabber.Exception exception) {
 				exception.printStackTrace();
 				System.out.println(exception.getMessage());
 				playErrorSound();
-			} catch (FrameGrabber.Exception exception) {
-				//I assume this is what occurs when the path is invalid
-				exception.printStackTrace();
-				System.out.println(exception.getMessage());
-				playErrorSound();
-			}
+			} //I assume this is what occurs when the path is invalid
+
 		});
 		playThread.start(); // start the thread we just made
 
