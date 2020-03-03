@@ -206,6 +206,10 @@ public class Controller {
 	private void iniSourceDataLine(){
 		AudioFormat audioFormat = new AudioFormat(sampleRate, sampleSizeInBits, numberOfChannels, true, true);
 		try {
+			if(sourceDataLine != null && sourceDataLine.isOpen()){
+				sourceDataLine.stop();
+				sourceDataLine.close();
+			}
 			sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
 			sourceDataLine.open(audioFormat, sampleRate);
 		} catch (LineUnavailableException e) {
