@@ -51,7 +51,7 @@
                   <Insets left="40.0" right="40.0" />
                </padding>
             </HBox>
-            <Text strokeType="OUTSIDE" strokeWidth="0.0" text="CMPT 365 | Simon Fraser University | May 2017&#10;Mark Drew (mark@cs.sfu.ca) | Chen Song (csa102@sfu.ca)" textAlignment="CENTER" wrappingWidth="456.638671875">
+            <Text strokeType="OUTSIDE" strokeWidth="0.0" text="CMPT 365 | Simon Fraser University | FEB 2020&#10;Maheeppartap Singh (msa206@sfu.ca) | Conor Murphy (clmurphy@sfu.ca)" textAlignment="CENTER" wrappingWidth="456.638671875">
                <VBox.margin>
                   <Insets left="50.0" />
                </VBox.margin>
