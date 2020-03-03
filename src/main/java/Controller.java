@@ -1,6 +1,8 @@
 import javax.sound.sampled.*;
 
 import javafx.application.Platform;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.SimpleIntegerProperty;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
@@ -18,6 +20,7 @@ import org.bytedeco.opencv.opencv_core.Size;
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -27,157 +30,81 @@ public class Controller {
 
 	@FXML
 	public Text errorBox;
-	public TextField samplePerColumnInput;
-	public TextField sampleSizeInput;
-	public TextField sampleRateInput;
-	public TextField quantInput;
-	public TextField heightInput;
-	public TextField widthInput;
+	@FXML
+	public TextField samplePerColumnInput, sampleSizeInput, sampleRateInput, quantInput, heightInput, widthInput;
 	@FXML
 	private ImageView imageView; // the image display window in the GUI
 
 
 
-	private int width;
-	private int height;
-	private int sampleRate; // sampling frequency
-	private int sampleSizeInBits;
-	private int numberOfChannels;
+
+	private final IntegerProperty width = new SimpleIntegerProperty(64);
+	private final IntegerProperty height = new SimpleIntegerProperty(64);
+	private final IntegerProperty sampleRate = new SimpleIntegerProperty(8000);
+	private final IntegerProperty sampleSizeInBits = new SimpleIntegerProperty(8);
+	private final IntegerProperty numberOfQuantizationLevels = new SimpleIntegerProperty(16);
+	private final IntegerProperty numberOfSamplesPerColumn = new SimpleIntegerProperty(500);
+	private final IntegerProperty[] props = {width, height, sampleRate, sampleSizeInBits,
+			numberOfQuantizationLevels, numberOfSamplesPerColumn};
+
+	private static final HashMap<Integer, Integer> defaultValues = new HashMap<>();
+	private static final HashMap<Integer, TextField> assocTextField = new HashMap<>();
+
+
 	private double[] freq; // frequencies for each particular row
-	private int numberOfQuantizionLevels;
-	private int numberOfSamplesPerColumn;
 	private Stage stage;
 	private String videoFilename;
 	private static FFmpegFrameGrabber grabber;
 	private static final Java2DFrameConverter fxconverter = new Java2DFrameConverter(); //converts frames to java.awt.image
 	private static final OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
-	private static SourceDataLine sourceDataLine;
 
 	private static Thread playThread;
 
 	private static Mat firstImage;
 
 
-	//testing for input here
-
-
-
-
-	private void changeThis(String c){
-		switch (c){
-			case "wi": width = Integer.parseInt(widthInput.getText()); break;
-			case "spc": numberOfSamplesPerColumn = Integer.parseInt(samplePerColumnInput.getText()); break;
-			case "ssi": sampleSizeInBits = Integer.parseInt(sampleSizeInput.getText()); break;
-			case "sri": sampleRate = Integer.parseInt(sampleRateInput.getText()); break;
-			case "qi":	numberOfQuantizionLevels = Integer.parseInt(quantInput.getText());break;
-			case "hi":	height = Integer.parseInt(heightInput.getText());break;
-		}
-	}
-
-	private void setDefaults(String x){
-		switch (x){
-			case "all":
-				width = 64;
-				height = 64;
-				sampleRate = 8000;
-				sampleSizeInBits = 8;
-				numberOfChannels = 1;
-				numberOfQuantizionLevels = 8;
-				numberOfSamplesPerColumn = 500;
-				break;
-			case "wi":width = 64; break;
-			case "spc":numberOfSamplesPerColumn = 500; break;
-			case "ssi":sampleSizeInBits = 8; break;
-			case "sri":sampleRate = 8000; break;
-			case "qi":numberOfQuantizionLevels = 8;	break;
-			case "hi":height = 64;	break;
-		}
-
-	}
-
-	private void setTextFieldsDefaults(String x){
-
-	    setDefaults(x);
-		switch (x){
-			case "all":
-				widthInput.setText(Integer.toString(width));
-				samplePerColumnInput.setText(Integer.toString(numberOfSamplesPerColumn));
-				sampleSizeInput.setText(Integer.toString(sampleSizeInBits));
-				sampleRateInput.setText(Integer.toString(sampleRate));
-				quantInput.setText(Integer.toString(numberOfQuantizionLevels));
-				heightInput.setText(Integer.toString(height));
-				break;
-			case "wi":	widthInput.setText(Integer.toString(width)); break;
-			case "spc":	samplePerColumnInput.setText(Integer.toString(numberOfSamplesPerColumn));break;
-			case "ssi": sampleSizeInput.setText(Integer.toString(sampleSizeInBits));break;
-			case "sri": sampleRateInput.setText(Integer.toString(sampleRate)); break;
-			case "qi":	quantInput.setText(Integer.toString(numberOfQuantizionLevels));break;
-			case "hi":	heightInput.setText(Integer.toString(height));break;
-		}
-	}
 	@FXML
 	private void initialize() {
-		// Optional: You should modify the logic so that the user can change these values
-		// You may also do some experiments with different values
+		iniTextFieldHashMap();
+		for(IntegerProperty p : props){
+			defaultValues.put(p.hashCode(), p.getValue()); // set default values
+			TextField tf = assocTextField.get(p.hashCode());
+			tf.setText(p.getValue().toString()); //set default text for inputs
+			setIntegerListener(tf, p); //add listener to text input
+		}
 
-
-		setTextFieldsDefaults("all");
-		iniSourceDataLine();
-
+		int h = height.get();
 		// assign frequencies for each particular row
-		freq = new double[height]; // Be sure you understand why it is height rather than width
-		freq[height/2-1] = 440.0; // 440KHz - Sound of A (La)
-		for (int m = height/2; m < height; m++) {
+		freq = new double[h]; // Be sure you understand why it is height rather than width
+		freq[h/2-1] = 440.0; // 440KHz - Sound of A (La)
+		for (int m = h/2; m < h; m++) {
 			freq[m] = freq[m-1] * Math.pow(2, 1.0/12.0);
 		}
-		for (int m = height/2-2; m >=0; m--) {
+		for (int m = h/2-2; m >=0; m--) {
 			freq[m] = freq[m+1] * Math.pow(2, -1.0/12.0);
 		}
-		setListeners();
 
 	}
 
-	private void setListeners(){
-		setIntegerListener(widthInput,"wi");
-		setIntegerListener(heightInput,"hi");
-		setIntegerListener(quantInput,"qi");
-		setIntegerListener(sampleRateInput,"sri");
-		setIntegerListener(sampleSizeInput,"ssi");
-		setIntegerListener(samplePerColumnInput,"spc");
+	private void iniTextFieldHashMap(){
+		assocTextField.put(width.hashCode(), widthInput);
+		assocTextField.put(height.hashCode(), heightInput);
+		assocTextField.put(sampleRate.hashCode(), sampleRateInput);
+		assocTextField.put(sampleSizeInBits.hashCode(), sampleSizeInput);
+		assocTextField.put(numberOfQuantizationLevels.hashCode(), quantInput);
+		assocTextField.put(numberOfSamplesPerColumn.hashCode(), samplePerColumnInput);
 	}
 
-	private void setIntegerListener(TextField t, String change){
+
+	private void setIntegerListener(TextField t, IntegerProperty p){
 		t.textProperty().addListener((obs,oldVal,newVal) -> {
-
-			if (isInteger(newVal)) changeThis(change);
-			else if(isEmpty(newVal))linkerToDefault(t);
-			else t.setText(oldVal);
+			try {
+				p.setValue(Integer.parseInt(newVal));
+			}catch (NumberFormatException e) {
+				if (newVal.isEmpty()) p.setValue(defaultValues.get(p.getName()));
+				else t.setText(oldVal);
+			}
 		});
-	}
-
-	private void linkerToDefault(TextField t){
-		switch (t.getId()){
-			case "widthInput":setTextFieldsDefaults("wi"); break;
-			case "heightInput": setTextFieldsDefaults("hi");break;
-			case "quantInput": setTextFieldsDefaults("qi");break;
-			case "sampleRateInput": setTextFieldsDefaults("sri");break;
-			case "sampleSizeInput": setTextFieldsDefaults("ssi");break;
-			case "samplePerColumnInput": setTextFieldsDefaults("spc");break;
-		}
-	}
-
-	private  Boolean isEmpty(String x){
-		return x.equals("");
-	}
-	public static boolean isInteger(String s) {
-		try {
-			int k = Integer.parseInt(s);
-			if(k < 0) return false;
-		} catch(NumberFormatException | NullPointerException e) {
-			return false;
-		}
-
-		return true;
 	}
 
 	public void setStage(Stage stage){
@@ -214,17 +141,16 @@ public class Controller {
 	protected void openImage() {
 		// Do this so the error text goes away after they try something to fix it
 		errorBox.setText("");
-
 		if(playThread != null && playThread.isAlive()){
 			playThread.interrupt();
 		}
-
 		videoFilename = getImageFilename();
-
 		prepareVideoForPlaying();
 	}
 
 	private void prepareVideoForPlaying(){
+
+
 		if(videoFilename == null){
 			// no output because it's ok
 			// no one clicks the exit button and expects to see a video magically appear.
@@ -273,7 +199,6 @@ public class Controller {
 			try {
 
 				ExecutorService executor = Executors.newSingleThreadExecutor();
-				sourceDataLine.start();
 
 				if(firstImage != null){
 					playImage(firstImage, executor);
@@ -302,14 +227,13 @@ public class Controller {
 				}
 				executor.shutdownNow();
 				executor.awaitTermination(10, TimeUnit.SECONDS);
-				sourceDataLine.stop();
 				grabber.stop();
 				grabber.release();
 				if(!Thread.interrupted()){
 					//prepare to play the same video again if we didn't exit because of an interupt
 					prepareVideoForPlaying();
 				}
-			} catch (FrameGrabber.Exception | InterruptedException e) {
+			} catch (FrameGrabber.Exception | InterruptedException | LineUnavailableException e) {
 				e.printStackTrace();
 
 				errorBox.setText(e.getMessage());
@@ -321,22 +245,8 @@ public class Controller {
 
 	}
 
-	private void iniSourceDataLine(){
-		AudioFormat audioFormat = new AudioFormat(sampleRate, sampleSizeInBits, numberOfChannels, true, true);
-		try {
-			if(sourceDataLine != null && sourceDataLine.isOpen()){
-				sourceDataLine.stop();
-				sourceDataLine.close();
-			}
-			sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
-			sourceDataLine.open(audioFormat, sampleRate);
-		} catch (LineUnavailableException e) {
-			e.printStackTrace();
-			errorBox.setText(e.getMessage());
-		}
-	}
 
-	private void playImage(Mat image, ExecutorService executor) {
+	private void playImage(Mat image, ExecutorService executor) throws LineUnavailableException {
 		//todo: replace image with frame
 
 		// This method "plays" the image opened by the user
@@ -347,7 +257,8 @@ public class Controller {
 
 		// resize the image
 		Mat resizedImage = new Mat();
-		resize(grayImage,resizedImage,new Size(width,height));
+		int w = width.get(), h = height.get();
+		resize(grayImage,resizedImage,new Size(w, h));
 
 		UByteRawIndexer imageIndexer = image.createIndexer();
 
@@ -361,40 +272,49 @@ public class Controller {
 									//example: 255/8 = 31, 31/8 = 3.875. this is not between 0 and 1
 									//it only worked because 256/16/16 = 1, or because 256/16 = 16
 
-				roundedImage[row][col] = Math.floor(imageIndexer.get(row,col)/(256.0/numberOfQuantizionLevels)) / numberOfQuantizionLevels;
+				int nql = numberOfQuantizationLevels.get();
+				roundedImage[row][col] = Math.floor(imageIndexer.get(row,col)/(256.0/nql)) / nql;
 				//same example: 255/(256/8) = 7, 7/8 < 1
 			}
 		}
+		AudioFormat audioFormat = new AudioFormat(sampleRate.get(), sampleSizeInBits.get(),
+				1, true, true);
+		SourceDataLine sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
+		sourceDataLine.open(audioFormat, sampleRate.get());
+		sourceDataLine.start();
 
 		// I used an AudioFormat object and a SourceDataLine object to perform audio output. Feel free to try other options
 
-		for (int col = 0; col < width; col++) {
-			byte[] audioBuffer = new byte[numberOfSamplesPerColumn];
-			for (int t = 1; t <= numberOfSamplesPerColumn; t++) {
+		int spc = numberOfSamplesPerColumn.get(), sr = sampleRate.get();
+
+		for (int col = 0; col < w; col++) {
+			byte[] audioBuffer = new byte[spc];
+			for (int t = 1; t <= spc; t++) {
 				double signal = 0;
-				for (int row = 0; row < height; row++) {
-					int m = height - row - 1; // Be sure you understand why it is height rather width, and why we subtract 1
-					int time = t + col * numberOfSamplesPerColumn;
-					double ss = Math.sin(2 * Math.PI * freq[m] * (double)time/sampleRate);
+				for (int row = 0; row < h; row++) {
+					int m = h - row - 1; // Be sure you understand why it is height rather width, and why we subtract 1
+					int time = t + col * spc;
+					double ss = Math.sin(2 * Math.PI * freq[m] * (double)time/sr);
 					signal += roundedImage[row][col] * ss;
 				}
-				double normalizedSignal = signal / height; // signal: [-height, height];  normalizedSignal: [-1, 1]
+				double normalizedSignal = signal / h; // signal: [-height, height];  normalizedSignal: [-1, 1]
 				audioBuffer[t-1] = (byte) (normalizedSignal*0x7F); // Be sure you understand what the weird number 0x7F is for
 			}
 			try {
 				executor.submit(() -> {
-					sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
+					sourceDataLine.write(audioBuffer, 0, spc);
 				}).get();
 			} catch (InterruptedException | ExecutionException interruptedException) {
 				Thread.currentThread().interrupt();
 			}
 		}
 		try {
-			executor.submit(() -> sourceDataLine.drain()).get();
+			executor.submit(sourceDataLine::drain).get();
 		} catch (InterruptedException | ExecutionException interruptedException) {
 			Thread.currentThread().interrupt();
-
 		}
+		sourceDataLine.stop();
+		sourceDataLine.close();
 	}
 
 	/***PLAY USER FEEDBACK NOISES ***/
