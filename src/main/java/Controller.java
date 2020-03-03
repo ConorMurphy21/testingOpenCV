@@ -55,6 +55,8 @@ public class Controller {
 
 	private static Thread playThread;
 
+	private static Mat firstImage;
+
 
 	//testing for input here
 
@@ -161,6 +163,10 @@ public class Controller {
 		// Do this so the error text goes away after they try something to fix it
 		errorBox.setText("");
 
+		if(playThread != null && playThread.isAlive()){
+			playThread.interrupt();
+		}
+
 		videoFilename = getImageFilename();
 
 		if(videoFilename == null){
@@ -181,6 +187,7 @@ public class Controller {
 			if (tn.image != null) {
 				final Image image = SwingFXUtils.toFXImage(fxconverter.convert(tn), null);
 				imageView.setImage(image); // puts the frame as the imageview
+				firstImage = converter.convert(tn);
 			}
 			// cannot
 		}catch (Exception e){
@@ -212,8 +219,12 @@ public class Controller {
 			try {
 
 				ExecutorService executor = Executors.newSingleThreadExecutor();
-
 				sourceDataLine.start();
+
+				if(firstImage != null){
+					playImage(firstImage, executor);
+				}
+
 				int counter = 0;
 				// This is so the main thread can interrupt this one
 				while (!Thread.interrupted()) {
@@ -221,7 +232,6 @@ public class Controller {
 					Frame frame = grabber.grabImage();
 					counter++;
 					if (frame == null) {
-						System.out.println("frame was null");
 						break;
 					}
 					if (frame.image != null) {
@@ -231,11 +241,9 @@ public class Controller {
 
 						Mat mat = converter.convert(frame);
 						if (counter % 30 == 0) {
-							playImage(mat, executor);
 							playClickSound();
+							playImage(mat, executor);
 						}
-					}else{
-						System.out.println("frame.image was null");
 					}
 				}
 				executor.shutdownNow();
