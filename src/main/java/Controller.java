@@ -101,7 +101,7 @@ public class Controller {
 			try {
 				p.setValue(Integer.parseInt(newVal));
 			}catch (NumberFormatException e) {
-				if (newVal.isEmpty()) p.setValue(defaultValues.get(p.getName()));
+				if (newVal.isEmpty()) p.setValue(defaultValues.get(p.hashCode()));
 				else t.setText(oldVal);
 			}
 		});
