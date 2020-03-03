@@ -15,6 +15,10 @@ import org.bytedeco.opencv.opencv_core.Size;
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
 import java.io.File;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 public class Controller {
 
@@ -35,6 +39,7 @@ public class Controller {
 	private static FFmpegFrameGrabber grabber;
 	private static final Java2DFrameConverter fxconverter = new Java2DFrameConverter(); //converts frames to java.awt.image
 	private static final OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
+	private static SourceDataLine sourceDataLine;
 
 	private static Thread playThread;
 
@@ -51,6 +56,8 @@ public class Controller {
 		numberOfQuantizionLevels = 8;
 
 		numberOfSamplesPerColumn = 500;
+
+		iniSourceDataLine();
 
 		// assign frequencies for each particular row
 		freq = new double[height]; // Be sure you understand why it is height rather than width
@@ -82,7 +89,6 @@ public class Controller {
 					playThread.interrupt();
 				}
 			}
-			System.exit(0);
 		});
 	}
 
@@ -135,6 +141,9 @@ public class Controller {
 		playThread = new Thread(() -> {
 			try {
 
+				ExecutorService executor = Executors.newSingleThreadExecutor();
+
+				sourceDataLine.start();
 				int counter = 0;
 				// This is so the main thread can interrupt this one
 				while (!Thread.interrupted()) {
@@ -151,14 +160,17 @@ public class Controller {
 
 						Mat mat = converter.convert(frame);
 						if (counter % 30 == 0) {
-							playImage(mat);
+							playImage(mat, executor);
 							playClickSound();
 						}
 					}
 				}
+				executor.shutdownNow();
+				executor.awaitTermination(10, TimeUnit.SECONDS);
+				sourceDataLine.stop();
 				grabber.stop(); // duh
 				grabber.release(); // This is the stuff it prints
-			} catch (LineUnavailableException | FrameGrabber.Exception exception) {
+			} catch (FrameGrabber.Exception | InterruptedException exception) {
 				exception.printStackTrace();
 				System.out.println(exception.getMessage());
 				playErrorSound();
@@ -169,7 +181,17 @@ public class Controller {
 
 	}
 
-	private void playImage(Mat image) throws LineUnavailableException {
+	private void iniSourceDataLine(){
+		AudioFormat audioFormat = new AudioFormat(sampleRate, sampleSizeInBits, numberOfChannels, true, true);
+		try {
+			sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
+			sourceDataLine.open(audioFormat, sampleRate);
+		} catch (LineUnavailableException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void playImage(Mat image, ExecutorService executor) {
 		//todo: replace image with frame
 
 		// This method "plays" the image opened by the user
@@ -200,10 +222,6 @@ public class Controller {
 		}
 
 		// I used an AudioFormat object and a SourceDataLine object to perform audio output. Feel free to try other options
-		AudioFormat audioFormat = new AudioFormat(sampleRate, sampleSizeInBits, numberOfChannels, true, true);
-		SourceDataLine sourceDataLine = AudioSystem.getSourceDataLine(audioFormat);
-		sourceDataLine.open(audioFormat, sampleRate);
-		sourceDataLine.start();
 
 		for (int col = 0; col < width; col++) {
 			byte[] audioBuffer = new byte[numberOfSamplesPerColumn];
@@ -218,10 +236,19 @@ public class Controller {
 				double normalizedSignal = signal / height; // signal: [-height, height];  normalizedSignal: [-1, 1]
 				audioBuffer[t-1] = (byte) (normalizedSignal*0x7F); // Be sure you understand what the weird number 0x7F is for
 			}
-			sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
+			try {
+				executor.submit(() -> {
+					sourceDataLine.write(audioBuffer, 0, numberOfSamplesPerColumn);
+				}).get();
+			} catch (InterruptedException | ExecutionException interruptedException) {
+				Thread.currentThread().interrupt();
+			}
 		}
-		sourceDataLine.drain();
-		sourceDataLine.close();
+		try {
+			executor.submit(() -> sourceDataLine.drain()).get();
+		} catch (InterruptedException | ExecutionException interruptedException) {
+			Thread.currentThread().interrupt();
+		}
 	}
 
 	/***PLAY USER FEEDBACK NOISES ***/
