@@ -116,6 +116,11 @@ public class Controller {
 		}
 
 		try{
+			if(grabber != null){
+				grabber.stop();
+				grabber.release();
+			}
+
 			grabber = new FFmpegFrameGrabber(videoFilename);
 			grabber.start();
 			Frame tn = grabber.grabImage();
@@ -140,6 +145,9 @@ public class Controller {
 		if(videoFilename == null){
 		    errorBox.setText("No File Found");
 			playErrorSound();
+			return;
+		}
+		if(playThread != null && playThread.isAlive()){
 			return;
 		}
 		//todo: add special logic so that it can play images and video
