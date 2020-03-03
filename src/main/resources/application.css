@@ -1,1 +1,5 @@
 /* JavaFX CSS - Leave this comment until you have at least create one rule which uses -fx-Property */
+.error-text{
+    -fx-font-size: 20px;
+    -fx-fill: #ff0000;
+}

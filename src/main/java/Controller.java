@@ -3,6 +3,7 @@ import javax.sound.sampled.*;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
 import javafx.scene.image.Image;
+import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.bytedeco.javacpp.indexer.UByteRawIndexer;
@@ -22,6 +23,8 @@ import java.util.concurrent.TimeUnit;
 
 public class Controller {
 
+	@FXML
+	public Text errorBox;
 	@FXML
 	private ImageView imageView; // the image display window in the GUI
 
@@ -101,6 +104,8 @@ public class Controller {
 
 	@FXML
 	protected void openImage() {
+		// Do this so the error text goes away after they try something to fix it
+		errorBox.setText("");
 
 		videoFilename = getImageFilename();
 
@@ -118,6 +123,7 @@ public class Controller {
 				final Image image = SwingFXUtils.toFXImage(fxconverter.convert(tn), null);
 				imageView.setImage(image); // puts the frame as the imageview
 			}
+			// cannot
 		}catch (Exception e){
 			playErrorSound();
 			System.out.println(e.getMessage());
@@ -128,9 +134,11 @@ public class Controller {
 
 	@FXML
 	protected void playFile() {
+		//Do this so that after they try something new, the error text doesn't linger
+		errorBox.setText("");
 
 		if(videoFilename == null){
-			System.out.println("File not found.");
+		    errorBox.setText("No File Found");
 			playErrorSound();
 			return;
 		}
@@ -151,6 +159,7 @@ public class Controller {
 					Frame frame = grabber.grabImage();
 					counter++;
 					if (frame == null) {
+						System.out.println("frame was null");
 						break;
 					}
 					if (frame.image != null) {
@@ -163,6 +172,8 @@ public class Controller {
 							playImage(mat, executor);
 							playClickSound();
 						}
+					}else{
+						System.out.println("frame.image was null");
 					}
 				}
 				executor.shutdownNow();

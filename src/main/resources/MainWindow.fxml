@@ -15,6 +15,9 @@
 <?import javafx.scene.text.Text?>
 
 <BorderPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="Controller">
+   <top>
+      <Text BorderPane.alignment="CENTER" fx:id="errorBox" styleClass="error-text">Hello</Text>
+   </top>
    <bottom>
       <VBox prefHeight="111.0" prefWidth="600.0" BorderPane.alignment="CENTER">
          <children>
