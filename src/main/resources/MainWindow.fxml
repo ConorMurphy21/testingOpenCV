@@ -13,19 +13,19 @@
             <Text fx:id="errorBox" styleClass="error-text" BorderPane.alignment="CENTER" />
             <HBox alignment="CENTER">
                <Label text="Width: " />
-               <TextField minWidth="50.0" prefWidth="70.0" />
+               <TextField minWidth="50.0" prefWidth="70.0" fx:id="widthInput"/>
                <Label text="Height: " />
-               <TextField prefWidth="70.0" />
+               <TextField prefWidth="70.0" fx:id="heightInput"/>
                <Label text="3 Quantization Levels: " />
-               <TextField prefWidth="70.0" />
+               <TextField prefWidth="70.0" fx:id="quantInput" />
             </HBox>
             <HBox>
                <Label text="Sample Rate: " />
-               <TextField prefWidth="70.0" />
+               <TextField prefWidth="70.0" fx:id="SampleRateInput"/>
                <Label text="Sample Size in Bits: " />
-               <TextField prefWidth="60.0" />
+               <TextField prefWidth="60.0" fx:id="SampleSizeInput"/>
                <Label text="# Samples per Column: " />
-               <TextField prefWidth="60.0" />
+               <TextField prefWidth="60.0" fx:id="SamplePerColumnInput"/>
             </HBox>
          </children>
       </VBox>

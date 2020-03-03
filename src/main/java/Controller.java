@@ -1,7 +1,12 @@
 import javax.sound.sampled.*;
+import javax.swing.*;
+import javax.swing.border.Border;
 
 import javafx.application.Platform;
+import javafx.beans.value.ChangeListener;
+import javafx.beans.value.ObservableValue;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.text.Text;
 import javafx.stage.FileChooser;
@@ -11,10 +16,12 @@ import org.bytedeco.javacv.*;
 
 import javafx.fxml.FXML;
 import javafx.scene.image.ImageView;
+import org.bytedeco.javacv.Frame;
 import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Size;
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
+import java.awt.*;
 import java.io.File;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -25,6 +32,12 @@ public class Controller {
 
 	@FXML
 	public Text errorBox;
+	public TextField SamplePerColumnInput;
+	public TextField SampleSizeInput;
+	public TextField SampleRateInput;
+	public TextField quantInput;
+	public TextField heightInput;
+	public TextField widthInput;
 	@FXML
 	private ImageView imageView; // the image display window in the GUI
 
@@ -46,6 +59,23 @@ public class Controller {
 	private static SourceDataLine sourceDataLine;
 
 	private static Thread playThread;
+
+	Border invalid = BorderFactory.createLineBorder(Color.red);
+	//testing for input here
+
+
+
+
+	private void change_this(String c){
+		switch (c){
+			case "wi": width = Integer.parseInt(widthInput.getText()); break;
+			case "spc": numberOfSamplesPerColumn = Integer.parseInt(SamplePerColumnInput.getText()); break;
+			case "ssi": sampleSizeInBits = Integer.parseInt(SampleSizeInput.getText()); break;
+			case "sri": sampleRate = Integer.parseInt(SampleRateInput.getText()); break;
+			case "qi":	numberOfQuantizionLevels = Integer.parseInt(quantInput.getText());break;
+			case "hi":	height = Integer.parseInt(heightInput.getText());break;
+		}
+	}
 
 	@FXML
 	private void initialize() {
@@ -72,6 +102,59 @@ public class Controller {
 		for (int m = height/2-2; m >=0; m--) {
 			freq[m] = freq[m+1] * Math.pow(2, -1.0/12.0);
 		}
+		setListeners();
+
+	}
+
+	private void setListeners(){
+		SamplePerColumnInput.textProperty().addListener(new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				if (isInteger(newValue)) change_this("spc");
+			}
+		});
+		SampleSizeInput.textProperty().addListener(new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				if (isInteger(newValue)) change_this("ssi");
+			}
+		});
+		SampleRateInput.textProperty().addListener(new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				if (isInteger(newValue)) change_this("sri");
+			}
+		});
+		quantInput.textProperty().addListener(new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				if (isInteger(newValue)) change_this("qi");
+			}
+		});
+		heightInput.textProperty().addListener(new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				if (isInteger(newValue)) change_this("hi");
+			}
+		});
+		widthInput.textProperty().addListener(new ChangeListener<String>() {
+			@Override
+			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
+				if (isInteger(newValue)) change_this("wi");
+			}
+		});
+	}
+	public static boolean isInteger(String s) {
+		try {
+			int k = Integer.parseInt(s);
+			if(k < 0) return false;
+		} catch(NumberFormatException e) {
+			return false;
+		} catch(NullPointerException e) {
+			return false;
+		}
+
+		return true;
 	}
 
 	public void setStage(Stage stage){
