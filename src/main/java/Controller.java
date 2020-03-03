@@ -310,6 +310,7 @@ public class Controller {
 		}
 	}
 
+
 	private void playImage(Mat image, ExecutorService executor) {
 		//todo: replace image with frame
 
