@@ -1,10 +1,8 @@
 import javafx.application.Application;
-import javafx.event.EventHandler;
 import javafx.fxml.FXMLLoader;
 import javafx.stage.Stage;
 import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
-import javafx.stage.WindowEvent;
 
 
 public class Main extends Application {
@@ -21,9 +19,6 @@ public class Main extends Application {
 			primaryStage.setTitle("Blind Helper");
 			primaryStage.show();
 			//close all background threads immediately on closing application
-			primaryStage.setOnCloseRequest(we -> {
-				System.exit(0);
-			});
 
 		} catch(Exception e) {
 			e.printStackTrace();
@@ -31,8 +26,6 @@ public class Main extends Application {
 	}
 	
 	public static void main(String[] args) {
-		//Don't need, but leaving so I don't break your code maheep
-		//nu.pattern.OpenCV.loadShared();
 		launch(args);
 	}
 }

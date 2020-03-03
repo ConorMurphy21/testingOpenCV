@@ -25,7 +25,7 @@
                         <Insets left="150.0" top="20.0" />
                      </HBox.margin>
                   </Button>
-                  <Button mnemonicParsing="false" onAction="#playImage" prefHeight="40.0" prefWidth="100.0" text="Play">
+                  <Button mnemonicParsing="false" onAction="#playFile" prefHeight="40.0" prefWidth="100.0" text="Play">
                      <HBox.margin>
                         <Insets left="100.0" top="20.0" />
                      </HBox.margin>

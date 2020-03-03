@@ -33,9 +33,11 @@ public class Controller {
 	private int numberOfSamplesPerColumn;
 	private Stage stage;
 	private String videoFilename;
-	private FFmpegFrameGrabber thumbnail;
+	private static FFmpegFrameGrabber grabber;
 	private static final Java2DFrameConverter fxconverter = new Java2DFrameConverter(); //converts frames to java.awt.image
 	private static final OpenCVFrameConverter.ToMat converter = new OpenCVFrameConverter.ToMat();
+
+	private static Thread playThread;
 
 	@FXML
 	private void initialize() {
@@ -47,7 +49,7 @@ public class Controller {
 		sampleSizeInBits = 8;
 		numberOfChannels = 1;
 
-		numberOfQuantizionLevels = 16;
+		numberOfQuantizionLevels = 8;
 
 		numberOfSamplesPerColumn = 500;
 
@@ -64,6 +66,25 @@ public class Controller {
 
 	public void setStage(Stage stage){
 		this.stage = stage;
+
+		//Make sure we clean up our resources when we are done
+		stage.setOnCloseRequest(we -> {
+			if(playThread == null){
+				if(grabber != null){
+					try {
+						grabber.stop();
+						grabber.release();
+					} catch (FrameGrabber.Exception e) {
+						e.printStackTrace();
+					}
+				}
+			}else{
+				if(playThread.isAlive()){
+					playThread.interrupt();
+				}
+			}
+			System.exit(0);
+		});
 	}
 
 	private String getImageFilename() {
@@ -80,18 +101,19 @@ public class Controller {
 		videoFilename = getImageFilename();
 
 		if(videoFilename == null){
-			System.out.println("No file selected");
+		    // no output because it's ok
+			// no one clicks the exit button and expects to see a video magically appear.
 			return;
 		}
 
 		try{
-			thumbnail = new FFmpegFrameGrabber(videoFilename);
-			thumbnail.start();
-			Frame tn = thumbnail.grabImage();
+			grabber = new FFmpegFrameGrabber(videoFilename);
+			grabber.start();
+			Frame tn = grabber.grabImage();
 			if (tn.image != null) {
 				final Image image = SwingFXUtils.toFXImage(fxconverter.convert(tn), null);
-				Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
-				}
+				imageView.setImage(image); // puts the frame as the imageview
+			}
 		}catch (Exception e){
 			playErrorSound();
 			System.out.println("Could not display thumbnail.");
@@ -100,6 +122,60 @@ public class Controller {
 
 	}
 
+	@FXML
+	protected void playFile(ActionEvent event) {
+
+		if(videoFilename == null){
+			System.out.println("File not found.");
+			playErrorSound();
+			return;
+		}
+		//todo: add special logic so that it can play images and video
+
+
+		//todo: move these initialization steps to open Image, so it doesn't take as long to start playing
+		playThread = new Thread(() -> {
+			try {
+
+				int counter = 0;
+				// This is so the main thread can interrupt this one
+				while (!Thread.interrupted()) {
+					//tried using grabKeyFrame, but there was only 1 keyFrame.
+					Frame frame = grabber.grabImage();
+					counter++;
+					if (frame == null) {
+						break;
+					}
+					if (frame.image != null) {
+						//converts frame to swing image, then to javafx image
+						final Image image = SwingFXUtils.toFXImage(fxconverter.convert(frame), null);
+						Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
+
+						Mat mat = converter.convert(frame);
+						if (counter % 30 == 0) {
+							playImage(mat);
+							playClickSound();
+						}
+					}
+				}
+				grabber.stop(); // duh
+				grabber.release(); // This is the stuff it prints
+			} catch (LineUnavailableException exception) {
+				exception.printStackTrace();
+				System.out.println("Something went wrong");
+				//this most commonly occurs when the video is already in use
+				System.out.println("Please wait for this video to end.");
+				playErrorSound();
+			} catch (FrameGrabber.Exception exception) {
+				//I assume this is what occurs when the path is invalid
+				exception.printStackTrace();
+				System.out.println("Something else went wrong");
+				playErrorSound();
+			}
+		});
+		playThread.start(); // start the thread we just made
+
+	}
 
 	private void playImage(Mat image) throws LineUnavailableException {
 		//todo: replace image with frame
@@ -120,7 +196,14 @@ public class Controller {
 		double[][] roundedImage = new double[resizedImage.rows()][resizedImage.cols()];
 		for (int row = 0; row < resizedImage.rows(); row++) {
 			for (int col = 0; col < resizedImage.cols(); col++) {
-				roundedImage[row][col] = ((double)imageIndexer.get(row,col)/numberOfQuantizionLevels) / numberOfQuantizionLevels;
+
+										//This function didn't properly normalize when number NOQL was not 16
+				//roundedImage[row][col] = (double)Math.floor(imageIndexer.get(row,col)/numberOfQuantizionLevels) / numberOfQuantizionLevels;
+									//example: 255/8 = 31, 31/8 = 3.875. this is not between 0 and 1
+									//it only worked because 256/16/16 = 1, or because 256/16 = 16
+
+				roundedImage[row][col] = Math.floor(imageIndexer.get(row,col)/(256.0/numberOfQuantizionLevels)) / numberOfQuantizionLevels;
+				//same example: 255/(256/8) = 7, 7/8 < 1
 			}
 		}
 
@@ -149,69 +232,7 @@ public class Controller {
 		sourceDataLine.close();
 	}
 
-	@FXML
-	protected void playImage(ActionEvent event) {
-
-
-		if(videoFilename == null){
-			System.out.println("File not found.");
-			playErrorSound();
-			return;
-		}
-
-		//todo: add special logic so that it can play images and video
-
-
-		//todo: move these initialization steps to open Image, so it doesn't take as long to start playing
-		Thread playThread = new Thread(() -> {
-			try {
-				//what we need to get video
-				thumbnail.stop();
-				thumbnail.release();
-				final FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(videoFilename);
-				grabber.start();
-
-				int counter = 0;
-				// This is so the main thread can interrupt this one
-				while (!Thread.interrupted()) {
-					//tried using grabKeyFrame, but there was only 1 keyFrame.
-					Frame frame = grabber.grabImage();
-					counter++;
-					if (frame == null) {
-						break;
-					}
-					if (frame.image != null) {
-						//converts frame to swing image, then to javafx image
-						final Image image = SwingFXUtils.toFXImage(fxconverter.convert(frame), null);
-						Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
-
-						Mat mat = converter.convert(frame);
-						if (counter % 30 == 0) {
-							playImage(mat);
-							playClickSound();
-						}
-					}
-				}
-				grabber.stop(); // duh
-				grabber.release(); // This is the stuff it prints
-				//Platform.exit(); // This is why it closes when it's done
-			} catch (LineUnavailableException exception) {
-				exception.printStackTrace();
-				System.out.println("Something went wrong");
-				//this most commonly occurs when the video is already in use
-				System.out.println("Please wait for this video to end.");
-				playErrorSound();
-			} catch (FrameGrabber.Exception exception) {
-				//I assume this is what occurs when the path is invalid
-				exception.printStackTrace();
-				System.out.println("Something else went wrong");
-				playErrorSound();
-			}
-		});
-		playThread.start(); // start the thread we just made
-
-	}
-
+	/***PLAY USER FEEDBACK NOISES ***/
 	public void playSound(String filename){
 		new Thread(() -> {
 			try {
