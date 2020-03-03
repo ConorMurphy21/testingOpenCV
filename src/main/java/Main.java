@@ -13,7 +13,7 @@ public class Main extends Application {
 			BorderPane root = loader.load();
 			Controller controller = loader.getController();
 			controller.setStage(primaryStage);
-			Scene scene = new Scene(root, 600, 400);
+			Scene scene = new Scene(root);
 			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
 			primaryStage.setScene(scene);
 			primaryStage.setTitle("Blind Helper");
