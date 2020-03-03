@@ -105,48 +105,51 @@ public class Controller {
 		setListeners();
 
 	}
-
+	private Boolean isEmpty(String x){
+		if (x.equals("")) return true;
+		return false;
+	}
 	private void setListeners(){
 		SamplePerColumnInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("spc");
-				else SamplePerColumnInput.setText(oldValue);
+				else if(!isEmpty(newValue))SamplePerColumnInput.setText(oldValue);
 			}
 		});
 		SampleSizeInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("ssi");
-				else SampleSizeInput.setText(oldValue);
+				else if(!isEmpty(newValue))SampleSizeInput.setText(oldValue);
 			}
 		});
 		SampleRateInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("sri");
-				else SampleRateInput.setText(oldValue);
+				else if(!isEmpty(newValue))SampleRateInput.setText(oldValue);
 			}
 		});
 		quantInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("qi");
-				else quantInput.setText(oldValue);
+				else if(!isEmpty(newValue))quantInput.setText(oldValue);
 			}
 		});
 		heightInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("hi");
-				else heightInput.setText(oldValue);
+				else if(!isEmpty(newValue))heightInput.setText(oldValue);
 			}
 		});
 		widthInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("wi");
-				else widthInput.setText(oldValue);
+				else if(!isEmpty(newValue))widthInput.setText(oldValue);
 			}
 		});
 	}
