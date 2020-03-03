@@ -118,35 +118,35 @@ public class Controller {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("ssi");
-				else SampleSizeInput.clear();
+				else SampleSizeInput.setText(oldValue);
 			}
 		});
 		SampleRateInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("sri");
-				else SampleRateInput.clear();
+				else SampleRateInput.setText(oldValue);
 			}
 		});
 		quantInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("qi");
-				else quantInput.clear();
+				else quantInput.setText(oldValue);
 			}
 		});
 		heightInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("hi");
-				else heightInput.clear();
+				else heightInput.setText(oldValue);
 			}
 		});
 		widthInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("wi");
-				else widthInput.clear();
+				else widthInput.setText(oldValue);
 			}
 		});
 	}
