@@ -88,8 +88,7 @@ public class Controller {
 	}
 
 	private String getImageFilename() {
-		// This method should return the filename of the image to be played
-		// You should insert your code here to allow user to select the file
+
 		FileChooser fileChooser = new FileChooser();
 		File f = fileChooser.showOpenDialog(stage);
 		return (f != null) ? f.getAbsolutePath() : null;
@@ -116,7 +115,7 @@ public class Controller {
 			}
 		}catch (Exception e){
 			playErrorSound();
-			System.out.println("Could not display thumbnail.");
+			System.out.println(e.getMessage());
 		}
 
 
@@ -162,14 +161,12 @@ public class Controller {
 				grabber.release(); // This is the stuff it prints
 			} catch (LineUnavailableException exception) {
 				exception.printStackTrace();
-				System.out.println("Something went wrong");
-				//this most commonly occurs when the video is already in use
-				System.out.println("Please wait for this video to end.");
+				System.out.println(exception.getMessage());
 				playErrorSound();
 			} catch (FrameGrabber.Exception exception) {
 				//I assume this is what occurs when the path is invalid
 				exception.printStackTrace();
-				System.out.println("Something else went wrong");
+				System.out.println(exception.getMessage());
 				playErrorSound();
 			}
 		});
@@ -243,6 +240,7 @@ public class Controller {
 				clip.start();
 			} catch (Exception e) {
 				e.printStackTrace();
+				System.out.println(e.getMessage());
 			}
 		}).start();
 	}
