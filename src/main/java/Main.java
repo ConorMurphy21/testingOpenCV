@@ -16,7 +16,7 @@ public class Main extends Application {
 			Scene scene = new Scene(root);
 			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
 			primaryStage.setScene(scene);
-			primaryStage.setTitle("Blind Helper");
+			primaryStage.setTitle("Blind Helper_1");
 			primaryStage.show();
 			//close all background threads immediately on closing application
 
