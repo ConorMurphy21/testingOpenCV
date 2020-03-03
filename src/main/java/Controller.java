@@ -169,8 +169,12 @@ public class Controller {
 
 		videoFilename = getImageFilename();
 
+		prepareVideoForPlaying();
+	}
+
+	private void prepareVideoForPlaying(){
 		if(videoFilename == null){
-		    // no output because it's ok
+			// no output because it's ok
 			// no one clicks the exit button and expects to see a video magically appear.
 			return;
 		}
@@ -194,8 +198,6 @@ public class Controller {
 			playErrorSound();
 			errorBox.setText(e.getMessage());
 		}
-
-
 	}
 
 	@FXML
@@ -249,8 +251,12 @@ public class Controller {
 				executor.shutdownNow();
 				executor.awaitTermination(10, TimeUnit.SECONDS);
 				sourceDataLine.stop();
-				grabber.stop(); // duh
-				grabber.release(); // This is the stuff it prints
+				grabber.stop();
+				grabber.release();
+				if(!Thread.interrupted()){
+					//prepare to play the same video again if we didn't exit because of an interupt
+					prepareVideoForPlaying();
+				}
 			} catch (FrameGrabber.Exception | InterruptedException e) {
 				e.printStackTrace();
 
