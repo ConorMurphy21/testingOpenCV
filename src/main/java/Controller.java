@@ -60,7 +60,7 @@ public class Controller {
 
 	private static Thread playThread;
 
-	Border invalid = BorderFactory.createLineBorder(Color.red);
+
 	//testing for input here
 
 
@@ -111,36 +111,42 @@ public class Controller {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("spc");
+				else SamplePerColumnInput.clear();
 			}
 		});
 		SampleSizeInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("ssi");
+				else SampleSizeInput.clear();
 			}
 		});
 		SampleRateInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("sri");
+				else SampleRateInput.clear();
 			}
 		});
 		quantInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("qi");
+				else quantInput.clear();
 			}
 		});
 		heightInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("hi");
+				else heightInput.clear();
 			}
 		});
 		widthInput.textProperty().addListener(new ChangeListener<String>() {
 			@Override
 			public void changed(ObservableValue<? extends String> observable, String oldValue, String newValue) {
 				if (isInteger(newValue)) change_this("wi");
+				else widthInput.clear();
 			}
 		});
 	}
