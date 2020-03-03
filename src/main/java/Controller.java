@@ -74,27 +74,45 @@ public class Controller {
 		}
 	}
 
-	private void setDefaults(){
-		width = 64;
-		height = 64;
-		sampleRate = 8000;
-		sampleSizeInBits = 8;
-		numberOfChannels = 1;
+	private void setDefaults(String x){
+		switch (x){
+			case "all":
+				width = 64;
+				height = 64;
+				sampleRate = 8000;
+				sampleSizeInBits = 8;
+				numberOfChannels = 1;
+				numberOfQuantizionLevels = 8;
+				numberOfSamplesPerColumn = 500;
+				break;
+			case "wi":width = 64; break;
+			case "spc":numberOfSamplesPerColumn = 500; break;
+			case "ssi":sampleSizeInBits = 8; break;
+			case "sri":sampleRate = 8000; break;
+			case "qi":numberOfQuantizionLevels = 8;	break;
+			case "hi":height = 64;	break;
+		}
 
-		numberOfQuantizionLevels = 8;
-
-		numberOfSamplesPerColumn = 500;
 	}
 
 	private void setTextFieldsDefaults(String x){
 
+	    setDefaults(x);
 		switch (x){
-			case "wi": width = Integer.parseInt(widthInput.getText()); break;
-			case "spc": numberOfSamplesPerColumn = Integer.parseInt(samplePerColumnInput.getText()); break;
-			case "ssi": sampleSizeInBits = Integer.parseInt(sampleSizeInput.getText()); break;
-			case "sri": sampleRate = Integer.parseInt(sampleRateInput.getText()); break;
-			case "qi":	numberOfQuantizionLevels = Integer.parseInt(quantInput.getText());break;
-			case "hi":	height = Integer.parseInt(heightInput.getText());break;
+			case "all":
+				widthInput.setText(Integer.toString(width));
+				samplePerColumnInput.setText(Integer.toString(numberOfSamplesPerColumn));
+				sampleSizeInput.setText(Integer.toString(sampleSizeInBits));
+				sampleRateInput.setText(Integer.toString(sampleRate));
+				quantInput.setText(Integer.toString(numberOfQuantizionLevels));
+				heightInput.setText(Integer.toString(height));
+				break;
+			case "wi":	widthInput.setText(Integer.toString(width)); break;
+			case "spc":	samplePerColumnInput.setText(Integer.toString(numberOfSamplesPerColumn));break;
+			case "ssi": sampleSizeInput.setText(Integer.toString(sampleSizeInBits));break;
+			case "sri": sampleRateInput.setText(Integer.toString(sampleRate)); break;
+			case "qi":	quantInput.setText(Integer.toString(numberOfQuantizionLevels));break;
+			case "hi":	heightInput.setText(Integer.toString(height));break;
 		}
 	}
 	@FXML
@@ -102,8 +120,8 @@ public class Controller {
 		// Optional: You should modify the logic so that the user can change these values
 		// You may also do some experiments with different values
 
-		setDefaults();
-		setTextFieldsDefaults("s");
+
+		setTextFieldsDefaults("all");
 		iniSourceDataLine();
 
 		// assign frequencies for each particular row
@@ -130,9 +148,22 @@ public class Controller {
 
 	private void setIntegerListener(TextField t, String change){
 		t.textProperty().addListener((obs,oldVal,newVal) -> {
+
 			if (isInteger(newVal)) changeThis(change);
-			else if(!isEmpty(newVal))t.setText(oldVal);
+			else if(isEmpty(newVal))linkerToDefault(t);
+			else t.setText(oldVal);
 		});
+	}
+
+	private void linkerToDefault(TextField t){
+		switch (t.getId()){
+			case "widthInput":setTextFieldsDefaults("wi"); break;
+			case "heightInput": setTextFieldsDefaults("hi");break;
+			case "quantInput": setTextFieldsDefaults("qi");break;
+			case "sampleRateInput": setTextFieldsDefaults("sri");break;
+			case "sampleSizeInput": setTextFieldsDefaults("ssi");break;
+			case "samplePerColumnInput": setTextFieldsDefaults("spc");break;
+		}
 	}
 
 	private  Boolean isEmpty(String x){
