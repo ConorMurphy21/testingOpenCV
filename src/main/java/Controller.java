@@ -72,10 +72,7 @@ public class Controller {
 		}
 	}
 
-	@FXML
-	private void initialize() {
-		// Optional: You should modify the logic so that the user can change these values
-		// You may also do some experiments with different values
+	private void setDefaults(){
 		width = 64;
 		height = 64;
 		sampleRate = 8000;
@@ -85,7 +82,26 @@ public class Controller {
 		numberOfQuantizionLevels = 8;
 
 		numberOfSamplesPerColumn = 500;
+	}
 
+	private void setTextFieldsDefaults(String x){
+
+		switch (x){
+			case "wi": width = Integer.parseInt(widthInput.getText()); break;
+			case "spc": numberOfSamplesPerColumn = Integer.parseInt(samplePerColumnInput.getText()); break;
+			case "ssi": sampleSizeInBits = Integer.parseInt(sampleSizeInput.getText()); break;
+			case "sri": sampleRate = Integer.parseInt(sampleRateInput.getText()); break;
+			case "qi":	numberOfQuantizionLevels = Integer.parseInt(quantInput.getText());break;
+			case "hi":	height = Integer.parseInt(heightInput.getText());break;
+		}
+	}
+	@FXML
+	private void initialize() {
+		// Optional: You should modify the logic so that the user can change these values
+		// You may also do some experiments with different values
+
+		setDefaults();
+		setTextFieldsDefaults("s");
 		iniSourceDataLine();
 
 		// assign frequencies for each particular row
@@ -109,11 +125,16 @@ public class Controller {
 		setIntegerListener(sampleSizeInput,"ssi");
 		setIntegerListener(samplePerColumnInput,"spc");
 	}
+
 	private void setIntegerListener(TextField t, String change){
 		t.textProperty().addListener((obs,oldVal,newVal) -> {
 			if (isInteger(newVal)) changeThis(change);
-			else t.setText(oldVal);
+			else if(!isEmpty(newVal))t.setText(oldVal);
 		});
+	}
+
+	private  Boolean isEmpty(String x){
+		return x.equals("");
 	}
 	public static boolean isInteger(String s) {
 		try {
