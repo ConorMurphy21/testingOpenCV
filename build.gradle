@@ -1,11 +1,24 @@
+
 plugins {
     id 'java'
+    id "com.github.johnrengelman.shadow" version "5.2.0"
 }
 
-group 'org.example'
+group 'org.murphy.singh'
 version '1.0-SNAPSHOT'
 
+jar{
+    baseName('BlindHelper')
+    manifest{
+        attributes 'Main-Class': 'Main'
+    }
+}
+shadowJar{
+    baseName('BlindHelper')
+}
+
 sourceCompatibility = 1.8
+
 
 repositories {
     mavenCentral()

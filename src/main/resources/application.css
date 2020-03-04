@@ -21,6 +21,9 @@
 .button:hover{
     -fx-effect: dropshadow( three-pass-box, #000000, 10, 0, 0, 0);
 }
+.text-field:hover{
+    -fx-effect: dropshadow( three-pass-box, #000000, 10, 0, 0, 0);
+}
 .button:pressed{
     -fx-background-color:
             #000000,
