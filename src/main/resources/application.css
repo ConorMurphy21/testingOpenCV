@@ -1,9 +1,22 @@
 /* JavaFX CSS - Leave this comment until you have at least create one rule which uses -fx-Property */
-.error-text{
-    -fx-font-size: 20px;
-    -fx-fill: #ff0000;
-}
 
 .root{
     -fx-background-image: url("awesome_mark.png");
+}
+.button{
+    -fx-background-color: blue;
+    -fx-text-fill: rgb(49, 89, 23);
+    -fx-border-color: rgb(49, 89, 23);
+    -fx-border-radius: 5;
+}
+.label{
+    -fx-font-size: 14px;
+    -fx-text-fill: white;
+}
+.text-field{
+    -fx-highlight-text-fill: pink;
+}
+.error-text{
+    -fx-font-size: 20px;
+    -fx-fill: #ff0000;
 }
