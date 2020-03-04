@@ -36,6 +36,7 @@
 }
 .text-field{
     -fx-highlight-text-fill: pink;
+    -fx-highlight-fill: black;
     -fx-font-style: italic;
 }
 .error-text{
