@@ -19,7 +19,9 @@ import org.bytedeco.opencv.opencv_core.Mat;
 import org.bytedeco.opencv.opencv_core.Size;
 import static org.bytedeco.opencv.global.opencv_imgproc.*;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -96,7 +98,7 @@ public class Controller {
 		final int defaultValue = p.get();
 		t.textProperty().addListener((obs,oldVal,newVal) -> {
 			try {
-				p.setValue(Integer.parseInt(newVal));
+				p.setValue(Integer.parseUnsignedInt(newVal));
 			}catch (NumberFormatException e) {
 				if (newVal.isEmpty()) p.setValue(defaultValue);
 				else t.setText(oldVal);
@@ -193,9 +195,8 @@ public class Controller {
 
 		//todo: move these initialization steps to open Image, so it doesn't take as long to start playing
 		playThread = new Thread(() -> {
+			ExecutorService executor = Executors.newSingleThreadExecutor();
 			try {
-
-				ExecutorService executor = Executors.newSingleThreadExecutor();
 
 				if(firstImage != null){
 					playImage(firstImage, executor);
@@ -222,20 +223,30 @@ public class Controller {
 						}
 					}
 				}
-				executor.shutdownNow();
-				executor.awaitTermination(10, TimeUnit.SECONDS);
-				grabber.stop();
-				grabber.release();
-				if(!Thread.interrupted()){
-					//prepare to play the same video again if we didn't exit because of an interupt
-					prepareVideoForPlaying();
-				}
-			} catch (FrameGrabber.Exception | InterruptedException | LineUnavailableException e) {
+			} catch (FrameGrabber.Exception | LineUnavailableException e) {
 				e.printStackTrace();
-
 				errorBox.setText(e.getMessage());
 				playErrorSound();
-			} //I assume this is what occurs when the path is invalid
+			} catch (IllegalArgumentException e){
+				errorBox.setText("No Audio Format with the sample rate and sample size are supported");
+				playErrorSound();
+			}finally {
+				executor.shutdownNow();
+				try {
+					executor.awaitTermination(10, TimeUnit.SECONDS);
+					grabber.stop();
+					grabber.release();
+				} catch (InterruptedException | FrameGrabber.Exception e) {
+					e.printStackTrace();
+					errorBox.setText(e.getMessage());
+					playErrorSound();
+				}
+			}
+			if(!Thread.interrupted()){
+				//prepare to play the same video again if we didn't exit because of an interupt
+				prepareVideoForPlaying();
+			}
+			//I assume this is what occurs when the path is invalid
 
 		});
 		playThread.start(); // start the thread we just made
@@ -243,7 +254,7 @@ public class Controller {
 	}
 
 
-	private void playImage(Mat image, ExecutorService executor) throws LineUnavailableException {
+	private void playImage(Mat image, ExecutorService executor) throws LineUnavailableException, IllegalArgumentException {
 		//todo: replace image with frame
 
 		// This method "plays" the image opened by the user
@@ -319,9 +330,10 @@ public class Controller {
 		new Thread(() -> {
 			try {
 				Clip clip = AudioSystem.getClip();
-				AudioInputStream inputStream = AudioSystem.getAudioInputStream(
-						Main.class.getResourceAsStream(filename));
-				clip.open(inputStream);
+				InputStream audioSrc = getClass().getResourceAsStream(filename);
+				InputStream bufferedIn = new BufferedInputStream(audioSrc);
+				AudioInputStream audioStream = AudioSystem.getAudioInputStream(bufferedIn);
+				clip.open(audioStream);
 				clip.start();
 			} catch (Exception e) {
 				e.printStackTrace();
