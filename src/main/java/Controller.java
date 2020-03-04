@@ -31,11 +31,10 @@ public class Controller {
 	@FXML
 	public Text errorBox;
 	@FXML
-	public TextField samplePerColumnInput, sampleSizeInput, sampleRateInput, quantInput, heightInput, widthInput;
+	public TextField samplePerColumnInput, sampleSizeInput, sampleRateInput,
+			quantInput, heightInput, widthInput, nthframeInput;
 	@FXML
 	private ImageView imageView; // the image display window in the GUI
-
-
 
 
 	private final IntegerProperty width = new SimpleIntegerProperty(64);
@@ -44,12 +43,10 @@ public class Controller {
 	private final IntegerProperty sampleSizeInBits = new SimpleIntegerProperty(8);
 	private final IntegerProperty numberOfQuantizationLevels = new SimpleIntegerProperty(16);
 	private final IntegerProperty numberOfSamplesPerColumn = new SimpleIntegerProperty(500);
+	private final IntegerProperty nthframe = new SimpleIntegerProperty(30);
 	private final IntegerProperty[] props = {width, height, sampleRate, sampleSizeInBits,
-			numberOfQuantizationLevels, numberOfSamplesPerColumn};
-
-	private static final HashMap<Integer, Integer> defaultValues = new HashMap<>();
+			numberOfQuantizationLevels, numberOfSamplesPerColumn, nthframe};
 	private static final HashMap<Integer, TextField> assocTextField = new HashMap<>();
-
 
 	private double[] freq; // frequencies for each particular row
 	private Stage stage;
@@ -62,12 +59,10 @@ public class Controller {
 
 	private static Mat firstImage;
 
-
 	@FXML
 	private void initialize() {
 		iniTextFieldHashMap();
 		for(IntegerProperty p : props){
-			defaultValues.put(p.hashCode(), p.getValue()); // set default values
 			TextField tf = assocTextField.get(p.hashCode());
 			tf.setText(p.getValue().toString()); //set default text for inputs
 			setIntegerListener(tf, p); //add listener to text input
@@ -93,15 +88,17 @@ public class Controller {
 		assocTextField.put(sampleSizeInBits.hashCode(), sampleSizeInput);
 		assocTextField.put(numberOfQuantizationLevels.hashCode(), quantInput);
 		assocTextField.put(numberOfSamplesPerColumn.hashCode(), samplePerColumnInput);
+		assocTextField.put(nthframe.hashCode(),nthframeInput);
 	}
 
 
 	private void setIntegerListener(TextField t, IntegerProperty p){
+		final int defaultValue = p.get();
 		t.textProperty().addListener((obs,oldVal,newVal) -> {
 			try {
 				p.setValue(Integer.parseInt(newVal));
 			}catch (NumberFormatException e) {
-				if (newVal.isEmpty()) p.setValue(defaultValues.get(p.hashCode()));
+				if (newVal.isEmpty()) p.setValue(defaultValue);
 				else t.setText(oldVal);
 			}
 		});
@@ -219,7 +216,7 @@ public class Controller {
 						Platform.runLater(() -> imageView.setImage(image)); // puts the frame as the imageview
 
 						Mat mat = converter.convert(frame);
-						if (counter % 30 == 0) {
+						if (counter % nthframe.get() == 0) {
 							playClickSound();
 							playImage(mat, executor);
 						}

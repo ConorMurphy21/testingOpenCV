@@ -12,6 +12,8 @@
          <children>
             <Text fx:id="errorBox" styleClass="error-text" BorderPane.alignment="CENTER" />
             <HBox alignment="CENTER" spacing="15.0">
+               <Label text="Play every nth frame:" />
+               <TextField fx:id="nthframeInput" prefWidth="70.0" />
                <Label text="Width: " />
                <TextField fx:id="widthInput" minWidth="50.0" prefWidth="70.0" />
                <Label text="Height: " />
