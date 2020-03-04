@@ -13,13 +13,13 @@
     -fx-background-radius: 3,2,2,2;
     -fx-padding: 12 30 12 30;
     -fx-text-fill: white;
-    -fx-font-size: 12px;
+    -fx-font-size: 14px;
+    -fx-font-family: Verdana;
 }
 .button Text {
     -fx-effect: dropshadow( one-pass-box , rgba(0,0,0,0.8) , 0, 0.0 , 0 , 1);
 }
 .button:hover{
-
     -fx-effect: dropshadow( three-pass-box, #000000, 10, 0, 0, 0);
 }
 .text-field:hover{
@@ -36,11 +36,14 @@
     -fx-font-size: 14px;
     -fx-font-style: italic;
     -fx-text-fill: white;
+    -fx-font-family: "Comic Sans MS";
 }
 .text-field{
     -fx-highlight-text-fill: pink;
     -fx-highlight-fill: black;
     -fx-font-style: italic;
+    -fx-font-size: 14px;
+    -fx-font-family: "Courier New";
 }
 .error-text{
     -fx-font-size: 20px;
